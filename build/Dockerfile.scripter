@@ -1,0 +1,26 @@
+FROM python:3.13-slim-bookworm
+
+RUN mkdir -p /xml /output /scripts /deps && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        bash \
+        ca-certificates \
+        curl \
+        dnsutils \
+        iputils-ping \
+        jq && \
+    pip install --no-cache-dir requests==2.32.4 && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Extras from scripts/requirements.txt install at runtime into the host-persisted
+# /deps mount (pip --target). Image stays stock and Hub-pushable.
+
+COPY src/scripter/scripter.py /root/scripter.py
+COPY src/scripter/volts_results.py /root/helpers/volts_results.py
+COPY src/common /root/common
+COPY --chmod=755 src/scripter/volts-result /usr/local/bin/volts-result
+COPY --chmod=755 entrypoint.scripter.sh /docker-entrypoint.sh
+
+VOLUME ["/xml", "/output", "/scripts", "/deps"]
+WORKDIR /root
+ENTRYPOINT ["/docker-entrypoint.sh"]

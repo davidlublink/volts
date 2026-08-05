@@ -1,6 +1,6 @@
 #!/bin/sh
 
-COMPONENTS="prepare vp report database media sipp opensips"
+COMPONENTS="prepare vp report database media sipp opensips scripter"
 REGISTRY="ihorolkhovskyi"
 
 # Determine if we're building with podman or docker.

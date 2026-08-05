@@ -18,25 +18,27 @@ It will make and receive calls and configure the database.</br>
 And to add, you can definitely use it in [TDD](https://en.wikipedia.org/wiki/Test-driven_development) approach when adding functionalities to your existing PBX system. Test-Fail-Fix.</br></br>
 
 
-The suite consists of 8 parts, that are running sequentially
-1. Preparation - at this part we're transforming templates to real scenarios of `voip_patrol`, `sipp`, `database` and `media_check` using [`Jinja2`](https://jinja.palletsprojects.com/en/3.0.x/) template engine with [`jinja2_time`](https://github.com/hackebrot/jinja2-time) extension to put some dynamic data based on time.
+The suite consists of 10 parts, that are running sequentially
+1. Preparation - at this part we're transforming templates to real scenarios of `voip_patrol`, `sipp`, `database`, `media_check` and `script` using [`Jinja2`](https://jinja.palletsprojects.com/en/3.0.x/) template engine with [`jinja2_time`](https://github.com/hackebrot/jinja2-time) extension to put some dynamic data based on time.
 2. Start of a `Websocket-TLS` proxy to provide possibility of use WSS transport for the `voip_patrol` scenarios.
 ---
 3. Running database scripts. Usually - put some data inside some routing or subscriber data.
-4. Running `voip_patrol` or `sipp` scenario.
-5. Again running database scripts. Usually - remove data that had been put at stage 3.
-6. Run `media_check` if necessary to analyse obtained media files
+4. Running custom scripts (`stage=pre`), if the scenario declares them.
+5. Running `voip_patrol` or `sipp` scenario.
+6. Again running database scripts. Usually - remove data that had been put at stage 3.
+7. Run `media_check` if necessary to analyse obtained media files.
+8. Running custom scripts (`stage=post`) last, so all JSONL result files are readable.
 ---
-7. Tearing down a `Websocket-TLS` proxy.
-8. Report - at this part we're analyzing the results of the previous steps reading and interpreting file obtained running steps 3-6. Printing results in the desired way. Table by default.
-Steps 3-6 are running sequentially against scenarios files prepared in step 1. One at a time. Again, it's for `Linear`
+9. Tearing down a `Websocket-TLS` proxy.
+10. Report - at this part we're analyzing the results of the previous steps reading and interpreting file obtained running steps 3-8. Printing results in the desired way. Table by default.
+Steps 3-8 are running sequentially against scenarios files prepared in step 1. One at a time. Again, it's for `Linear`
 
 ## Building
 
 You can build images locally or pull existing from a `dockerhub`.</br>
 Suite is designed to run locally from your Linux PC or Mac. And of course, `docker` should be installed. It's up to you.</br>
 *Notes on using `podman`: I was able to run VOTLS using `podman-docker` package. One obstacle by default - the volumes permissions inside a container. To address this issue please refer to [this article](https://www.redhat.com/en/blog/container-permission-denied-errors).*</br>
-To build, just run `./build.sh`. Script will build 7 `docker` images and tag em accordingly.</br>
+To build, just run `./build.sh`. Script will build 8 `docker` images.</br>
 In a case if `voip_patrol` or `sipp` is updated, you need to rebuild these containers again, you can do it with `./build.sh -r <component>`, refer to `./build.sh --help`.
 
 ### Build Options
@@ -282,6 +284,49 @@ sipp <target> -sf <scenario.xml> -m 1 -mp <random_port> -i <container_ip>
 | `max_concurrent_calls` | `-l` option in SIPP. Set the maximum number of simultaneous calls. 10 by default. |
 | `total_timeout` | How long to wait for a test to preform in seconds. 600 (10 minutes) by default |
 
+
+#### Custom scripts
+
+Built by default with `./build.sh`. Scripts run only when a scenario declares a `<section type="script">`. Your `.sh` / `.py` files live in the repo-root [`scripts/`](scripts/) folder, which is **mounted read-only** into the container on every run — adding or editing a script needs no rebuild. Shipped samples are inert `*.sample` files; activate with `cp scripts/ping_host.sh.sample scripts/ping_host.sh`. User scripts are gitignored, so `git pull` / `docker pull` never touch them. The image is batteries-included (`curl`, `jq`, `ping`, `dig`, python `requests`, plus the `volts_results` / `volts-result` result-query helpers); optional extra pip deps go in local `scripts/requirements.txt` and are installed at runtime into `tmp/scripter-deps` (no image rebuild — see the guide). Full developer guide: [`scripts/README.md`](scripts/README.md). End-to-end wiring demos: [`scenarios/37-call-codec-priority-assert.xml`](scenarios/37-call-codec-priority-assert.xml) (codec offer + `assert_codec`) and [`scenarios/38-call-media-cdr-http.xml`](scenarios/38-call-media-cdr-http.xml) (media + CDR `http_check` by Call-ID).
+
+| Attribute | Default | Description |
+| --- | --- | --- |
+| `script` | (required) | Basename of a `.sh` / `.py` file in the mounted `scripts/` folder |
+| `stage` | `pre` | `pre` (before voip_patrol) or `post` (after media, so all JSONLs exist) |
+| `continue_on_error` | `false` | Keep running later actions in this stage on failure |
+| `timeout` | `60` | Seconds before the script process tree is killed |
+| `label` | script name | Human-readable name in logs and report error text |
+
+Params are `<param name="" value=""/>` children (or text content for multi-line values), exported as UPPERCASE env vars inside the container. They travel via the mounted `script.xml` (not `docker --env` CLI) so special characters round-trip; they still appear in the container process environment — never print params or `VOLTS_PARAMS_JSON`. Exit `0` = PASS, non-zero = FAIL (stderr/stdout tail becomes `s_error`). `pre` and `post` are independent — there is no database-style cleanup inversion. A failed `pre` script fails the scenario in the report, but `run.sh` still continues into voip/sipp/media/`post`.
+
+`post` scripts can query earlier results (e.g. SIP Call-IDs) via the baked-in helpers: `volts-result vp --get callid` in bash or `from volts_results import vp_tests` in python. A label matching several call legs (`call_count > 1`) returns all of them — use `--first`/`--last` to pick one.
+
+```xml
+<config>
+    <section type="script">
+        <actions>
+            <action script="ping_host.sh" label="SBC reachable before test" stage="pre">
+                <param name="host" value="{{ c.domain }}"/>
+            </action>
+        </actions>
+    </section>
+    <section type="voip_patrol">
+        <actions>
+            <!-- usual call/register actions -->
+        </actions>
+    </section>
+    <section type="script">
+        <actions>
+            <action script="http_check.py" label="CDR landed in billing API" stage="post"
+                    continue_on_error="true" timeout="30">
+                <param name="url" value="https://api.example.com/cdr/{{ scenario_name }}"/>
+                <param name="expected_status" value="200"/>
+                <param name="api_key" value="{{ c.api_key }}"/>
+            </action>
+        </actions>
+    </section>
+</config>
+```
 
 #### Database
 Database config is also done in XML, section `database`. We have 2 `stage`s of database scripts.
@@ -621,6 +666,16 @@ As a result, you will have a table like this.
 +---------------------------------------+-----------------------------------------------------------+------+----------+-------+--------+------------------+
 
 Scenarios ['49-teams-follow-forward', '50-team-no-answer-forward'] are failed!
+```
+
+A **Script** column is added only when at least one scenario in the run executed custom script actions (`N/A` for scenarios in that run without a script section); runs without scripts keep the original table above.
+```
++----------------------+-------------+------+----------+-------+--------+--------+------------------+
+|             Scenario | VoIP Patrol | SIPP | Database | Media | Script | Status |             Text |
++----------------------+-------------+------+----------+-------+--------+--------+------------------+
+| 60-call-with-scripts |        PASS |  N/A |      N/A |   N/A |   PASS |   PASS |  Scenario passed |
+|         02-call-echo |        PASS |  N/A |      N/A |   N/A |    N/A |   PASS |  Scenario passed |
++----------------------+-------------+------+----------+-------+--------+--------+------------------+
 ```
 That means your system is not OK, or something need to be tuned with the tests.</br>
 Not really much to describe here, just read info on the console
