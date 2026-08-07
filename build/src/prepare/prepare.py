@@ -400,7 +400,7 @@ try:
 
             # Inherit global_config to all accounts
             for k, v in global_config.items():
-                account_config_mixed[key][k] = account_config[key].get(k, global_config[k])
+                account_config_mixed[key][k] = account_config[key].get(k, v)
 
             # Make sure we can use a.88881 and a['88881'] at the same time. If 88881 is the number ;)
             if type(key) is str and key.isnumeric():

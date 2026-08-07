@@ -6,18 +6,17 @@ import subprocess
 import random
 import time
 import socket
-from pathlib import Path
 
 # Add common utilities to path
 sys.path.insert(0, '/root/common')
 from logger import setup_logger, get_log_level, ErrorReporter
-
 import lxml.etree as ET
+
 
 def write_report(filename, report, logger=None):
     """
     Write report to file with proper error handling.
-    
+
     Args:
         filename: Output filename
         report: Report dictionary
@@ -50,6 +49,7 @@ def write_report(filename, report, logger=None):
         else:
             print(f"ERROR: {error_msg}")
 
+
 def call_sipp(scenario_path, target, transport, log_level, max_calls, call_rate, max_ccalls, total_timeout, socket_mode, logger=None):
     '''
     Here we're calling sipp with proper error handling
@@ -58,7 +58,7 @@ def call_sipp(scenario_path, target, transport, log_level, max_calls, call_rate,
         return f"Scenario file <{scenario_path}> is absent...\n"
 
     tmp_media_port = random.randrange(50000, 60000)
-    
+
     try:
         ip_address = socket.gethostbyname(socket.gethostname())
     except socket.gaierror as e:
@@ -158,7 +158,7 @@ def call_sipp(scenario_path, target, transport, log_level, max_calls, call_rate,
             logger.info(log_msg)
         else:
             print(log_msg)
-    
+
     if log_level > 1:
         try:
             out_str = out.decode('utf-8', errors='replace')
@@ -169,7 +169,7 @@ def call_sipp(scenario_path, target, transport, log_level, max_calls, call_rate,
         except Exception as e:
             if logger:
                 logger.warning(f"Failed to decode SIPP output: {e}")
-                
+
     if log_level > 2:
         try:
             err_str = err.decode('utf-8', errors='replace')
@@ -205,7 +205,8 @@ def call_sipp(scenario_path, target, transport, log_level, max_calls, call_rate,
 
     return f"SIPP exited abnormally: {return_code}\nOut: {out_str}\nErr: {err_str}"
 
-### SCRIPT START
+
+# SCRIPT START
 scenario_name = os.environ.get("SCENARIO")
 report_file = os.environ.get("RESULT_FILE", "sipp.jsonl")
 
@@ -260,23 +261,35 @@ if scenario_root.tag != 'config':
 try:
     if len(scenario_root) == 0:
         raise IndexError("No child elements found")
-    
+
     actions = scenario_root[0]
     if actions.tag != 'actions':
         raise ValueError("First child is not <actions>")
-    
+
     if len(actions) == 0:
         raise IndexError("No action elements found")
-    
+
     action = actions[0]
     if action.tag != 'action':
         raise ValueError("First action child is not <action>")
-    
+
+    # Only the first action is executed. Say so loudly rather than dropping
+    # the rest without a trace.
+    extra_actions = len([a for a in actions if a.tag == 'action']) - 1
+    if extra_actions > 0:
+        logger.warning(
+            f"sipp section declares {extra_actions} extra <action> element(s); "
+            f"only the first one is executed, the rest are ignored"
+        )
+        report['warning'] = (
+            f"{extra_actions} extra <action> element(s) ignored, only the first is executed"
+        )
+
     if len(action) == 0:
         raise IndexError("No scenario elements found in action")
-    
+
     sipp_scenario = ET.ElementTree(action[0])
-    
+
 except (IndexError, ValueError) as e:
     error_msg = f"Scenario structure error: {e}"
     error_reporter.add_error(error_msg, e)

@@ -129,7 +129,7 @@ def _process_tabs_in_line(line: str) -> str:
             escape_next = False
         elif char == '\\':
             escape_next = True
-        elif char == '"' and not escape_next:
+        elif char == '"':
             in_string = not in_string
             result.append(char)
         else:

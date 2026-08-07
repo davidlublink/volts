@@ -36,7 +36,7 @@ class Chromaprint:
 
         return fpcalc_cmd_out if use_std_out else fpcalc_cmd_err
 
-    def _set_fpcalc_fingerprint(self, length=0) -> list:
+    def _set_fpcalc_fingerprint(self, length=0) -> None:
 
         fpcalc_cmd = [
             '/usr/bin/fpcalc',

@@ -37,11 +37,17 @@ import os
 import json
 import re
 from datetime import datetime as _dt
-from pathlib import Path
 
 # Add common utilities to path
 sys.path.insert(0, '/root/common')
 from logger import setup_logger, get_log_level, ErrorReporter
+
+# Used when <info> carries no explicit port. Must be per-engine: defaulting
+# everything to the MySQL port silently sends pgsql connections to 3306.
+DEFAULT_DB_PORTS = {
+    'mysql': '3306',
+    'pgsql': '5432',
+}
 
 
 def get_db_connection(db_options):
@@ -467,24 +473,24 @@ for action in actions:
         print(f"No info on database is found, ignoring entry {action_db_name}...")
         continue
 
-    db_type = db_info.attrib.get('type', 'mysql')
-    if db_type.lower() not in ('mysql', 'pgsql'):
+    db_type = db_info.attrib.get('type', 'mysql').lower()
+    if db_type not in DEFAULT_DB_PORTS:
         print(f"At the moment only MySQL/PostgreSQL are supported, ignoring entry {action_db_name}...")
         continue
 
     # On which database are we performing actions.
     db_base = db_info.attrib.get('base')
-    if not db_base :
+    if not db_base:
         print(f"Database for actions is not specified, ignoring entry {action_db_name}...")
         continue
 
     db_options = {
         'host':     db_info.attrib.get('host', 'localhost'),
-        'port':     db_info.attrib.get('port', '3306'),
+        'port':     db_info.attrib.get('port', DEFAULT_DB_PORTS[db_type]),
         'user':     db_info.attrib.get('user', 'root'),
         'password': db_info.attrib.get('password', ''),
         'db':       db_base,
-        'type':     db_type.lower(),
+        'type':     db_type,
     }
 
     db_actions = []
@@ -564,7 +570,9 @@ for action in actions:
         report['error'] += perform_db_operations(db_options, db_actions, log_level, logger)
     except Exception as e:
         error_string = f"[DATABASE][ERROR]: {e}"
-        report['error'] = error_string
+        # Append - a bare assignment here would discard everything the earlier
+        # actions of this scenario already reported.
+        report['error'] += error_string
         error_reporter.add_error(error_string, e)
         break
 

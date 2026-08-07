@@ -18,6 +18,11 @@ class SoXProcess:
         self.orig_filename = ""
         self.file_stats = {}
         self.condition_filter = set()
+        # Conditions that could not be evaluated at all. These do NOT fail the
+        # check (apply_filter only reports genuinely failing conditions), but
+        # the caller must surface them - an unevaluated condition looks exactly
+        # like a passing one otherwise.
+        self.filter_warnings = []
 
     def _run_sox(self, cmd, use_std_out=True):
         '''
@@ -143,11 +148,18 @@ class SoXProcess:
         '''
         result = set()
         for condition in filter_string.split(';'):
+            if not condition.strip():
+                continue
             for operator in ('-eq', '-lt', '-gt', '-le', '-ge', '-ne'):
                 operator_position = condition.find(operator)
                 if operator_position != -1:
                     result.add(self._process_single_valid_filter(condition, operator, operator_position))
                     break
+            else:
+                self.filter_warnings.append(
+                    f"condition <{condition.strip()}> has no recognised operator "
+                    f"(-eq/-ne/-lt/-le/-gt/-ge) and was NOT checked"
+                )
 
         self.condition_filter = result
 
@@ -183,7 +195,7 @@ class SoXProcess:
         self._run_sox(cmd_strip_silence, use_std_out=False)
 
         if not os.path.exists(strip_file_location):
-            raise Exception(f"Silence trim failed - no file created")
+            raise Exception("Silence trim failed - no file created")
 
         self.orig_filename = self.filename
         self.filename = strip_file_location
@@ -241,6 +253,7 @@ class SoXProcess:
 
     def apply_filter(self, filter):
         # Accepting as a value string with filter. All expressions should be TRUE to pass a test
+        self.filter_warnings = []
         self._set_filter(filter)
         self._set_file_stats()
 
@@ -249,16 +262,32 @@ class SoXProcess:
         for condition in self.condition_filter:
             parameter, operator, value = condition
             if parameter not in self.file_stats:
-                print(f"SoX Process warning: parameter <{parameter}> not present in file stats")
+                self.filter_warnings.append(
+                    f"parameter <{parameter}> is not present in file stats, condition was NOT checked"
+                )
                 continue
             file_stats_value = self.file_stats[parameter]
             comparison_function = getattr(file_stats_value, operator, None)
 
             if comparison_function is None:
-                print(f"SoX Process warning: operator <{operator}> is not supported")
+                self.filter_warnings.append(
+                    f"operator <{operator}> is not supported for parameter <{parameter}>, "
+                    f"condition was NOT checked"
+                )
                 continue
 
-            if comparison_function(value):
+            comparison_result = comparison_function(value)
+
+            # e.g. float.__ge__('abc') -> NotImplemented. It is truthy, so testing
+            # it directly would silently pass the condition (and is deprecated).
+            if comparison_result is NotImplemented:
+                self.filter_warnings.append(
+                    f"cannot compare parameter <{parameter}> ({file_stats_value!r}) "
+                    f"with expected value <{value!r}>: incompatible types, condition was NOT checked"
+                )
+                continue
+
+            if comparison_result:
                 continue
 
             failed_condition_desc = {

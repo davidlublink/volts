@@ -3,7 +3,6 @@ import os.path
 import json
 import sys
 import xml.etree.ElementTree as ET
-from pathlib import Path
 
 # Add common utilities to path
 sys.path.insert(0, '/root/common')
@@ -120,6 +119,10 @@ except (IndexError, AttributeError) as e:
 files_to_delete = set()
 files_to_keep = set()
 
+# Conditions that could not be evaluated. Reported separately from 'error' so
+# they stay visible without flipping the scenario status.
+report_warnings = []
+
 actions = scenario_root[0]
 
 for action in actions:
@@ -154,17 +157,28 @@ for action in actions:
         sox_filter = action.attrib.get('sox_filter', '')
         sox_filter_length = action.attrib.get('length')
         if sox_filter_length is not None:
-            if "-" in sox_filter_length:
-                sox_filter_length = sox_filter_length.split('-')
-                if len(sox_filter_length) == 2:
-                    l_max = float(sox_filter_length[1])
-                    l_min = float(sox_filter_length[0])
-                    sox_filter += f"; length s -ge {l_min}; length s -le {l_max}"
+            # A malformed length must FAIL the scenario, never crash the run:
+            # an uncaught ValueError here kills the container before any result
+            # line is written, which shows up as "media never ran".
+            try:
+                if "-" in sox_filter_length:
+                    sox_filter_length = sox_filter_length.split('-')
+                    if len(sox_filter_length) == 2:
+                        l_max = float(sox_filter_length[1])
+                        l_min = float(sox_filter_length[0])
+                        sox_filter += f"; length s -ge {l_min}; length s -le {l_max}"
+                    else:
+                        # Make sure we will fail on incorrect input data
+                        sox_filter += "; length s -eq -1"
                 else:
-                    # Make sure we will fail on incorrect input data
-                    sox_filter += f"; length s -eq -1"
-            else:
-                sox_filter += f"; length s -eq {sox_filter_length}"
+                    sox_filter += f"; length s -eq {float(sox_filter_length)}"
+            except ValueError:
+                error_msg = (
+                    f"Invalid <length> value <{action.attrib.get('length')}> for <{media_file}>"
+                )
+                error_reporter.add_error(error_msg)
+                report['error'] += f"{error_msg}\n"
+                continue
 
         silence_trim = True if media_type_check == 'sox_st' else False
         tool_name = "SoX Silence Trim" if media_type_check == 'sox_st' else "SoX"
@@ -184,6 +198,15 @@ for action in actions:
                 logger.debug(f"{tool_name} data for {media_file}:\n{sox_file_stats_formatted}")
 
             sox_result = sox_file.apply_filter(sox_filter)
+
+            # Conditions that could not be evaluated (unknown parameter, bad
+            # operator, incomparable value). They do not fail the check, but
+            # must not pass unnoticed either.
+            for filter_warning in sox_file.filter_warnings:
+                warning_msg = f"{tool_name} filter warning for <{media_file}>: {filter_warning}"
+                logger.warning(warning_msg)
+                report_warnings.append(warning_msg)
+
             if sox_result is not None:
                 error_msg = f"{tool_name} filter failed for <{media_file}>: {sox_result}"
                 error_reporter.add_error(error_msg)
@@ -218,20 +241,31 @@ for action in actions:
         fpcalc_dmax = 0
         fpcalc_dmin = 0
 
-        fpcalc_likeness = float(action.attrib.get('likeness', 0.9))
+        # As for sox above: bad input must FAIL this action, not kill the run
+        # before a result line is written.
+        try:
+            fpcalc_likeness = float(action.attrib.get('likeness', 0.9))
 
-        fpcalc_duration = action.attrib.get('length')
-        if fpcalc_duration is not None:
-            if "-" in fpcalc_duration:
-                fpcalc_duration = fpcalc_duration.split('-')
-                # Make sure we will fail on non-correct data
-                fpcalc_dmax = fpcalc_dmin = -1
-                if len(fpcalc_duration) == 2:
-                    fpcalc_dmax = float(fpcalc_duration[1])
-                    fpcalc_dmin = float(fpcalc_duration[0])
-            else:
-                fpcalc_dmax = float(fpcalc_duration)
-                fpcalc_dmin = fpcalc_dmax
+            fpcalc_duration = action.attrib.get('length')
+            if fpcalc_duration is not None:
+                if "-" in fpcalc_duration:
+                    fpcalc_duration = fpcalc_duration.split('-')
+                    # Make sure we will fail on non-correct data
+                    fpcalc_dmax = fpcalc_dmin = -1
+                    if len(fpcalc_duration) == 2:
+                        fpcalc_dmax = float(fpcalc_duration[1])
+                        fpcalc_dmin = float(fpcalc_duration[0])
+                else:
+                    fpcalc_dmax = float(fpcalc_duration)
+                    fpcalc_dmin = fpcalc_dmax
+        except ValueError:
+            error_msg = (
+                f"Invalid <likeness>/<length> value for <{media_file}>: "
+                f"likeness=<{action.attrib.get('likeness')}> length=<{action.attrib.get('length')}>"
+            )
+            error_reporter.add_error(error_msg)
+            report['error'] += f"{error_msg}\n"
+            continue
 
         fpcalc_max_offset = action.attrib.get('max_offset', 0)
         try:
@@ -243,7 +277,7 @@ for action in actions:
         logger.info(f"Start fpcalc processing over {media_file}")
 
         if not any(f.strip() for f in fpcalc_fp):
-            logger.warning(f"<fingerprint> for media type <fpcalc> is empty, is it for purpose?")
+            logger.warning("<fingerprint> for media type <fpcalc> is empty, is it for purpose?")
 
         try:
             fpcalc_file = Chromaprint(media_file)
@@ -311,6 +345,9 @@ for file_to_delete in files_to_delete:
             report['error'] += f"{error_msg}\n"
     else:
         logger.debug(f"File not found: {file_to_delete}")
+
+if report_warnings:
+    report['warning'] = " ".join(report_warnings)
 
 logger.info(f"Media check completed for scenario: {scenario_name}")
 write_report(report_file, report, logger)
