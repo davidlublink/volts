@@ -97,6 +97,15 @@ To run a single scenario:
 ```
 {: .code}
 
+To run several scenarios, list them space- and/or comma-separated:
+
+```bash
+./run.sh 001-register 002-call-echo
+# or
+./run.sh 001-register,002-call-echo
+```
+{: .code}
+
 To get a set of tests running using `tag` keyword:
 
 ```bash
@@ -127,7 +136,15 @@ To get a set of tests running using `tag` keyword:
 | `stop` | Stop tests and delete all containers |
 | `sngrep` | Launch SIP packet capture tool |
 | `dbclean` | Clean up test data from databases |
+| `report-only` | Skip test execution and only generate the report from existing data |
 {: .table}
+
+`report-only` re-reads the JSONL results left in `tmp/output` by the previous run instead of running any tests, so pair it with `-r/--report` to re-render that same run in a different format without touching your PBX again:
+
+```bash
+./run.sh -r json_full report-only
+```
+{: .code}
 
 After running the suite you can always find `voip_patrol` results in `tmp/output` folder.
 
@@ -135,15 +152,15 @@ After running the suite you can always find `voip_patrol` results in `tmp/output
 
 You can also configure behavior via environment variables (command-line options take precedence):
 
-| Variable | Description |
-|----------|-------------|
-| `REPORT_TYPE` | Report type: `table`, `json`, `table_full`, `json_full`. Overridden by `-r/--report` |
-| `LOG_LEVEL` | Log level (0-3). Overridden by `-l/--log-level` |
-| `MAX_SINGLE_TEST_TIME` | Maximum time for a single test in seconds. Overridden by `-t/--timeout` |
-| `OPENSIPS_TLS_PORT` | OpenSIPS TLS port (default: 6051). Overridden by `--tls-port` |
-| `OPENSIPS_WSS_PORT` | OpenSIPS WSS port (default: 9443). Overridden by `--wss-port` |
-| `OPENSIPS_HEPS_PORT` | HEP source port (default: 8887). Overridden by `--heps-port` |
-| `OPENSIPS_HEPD_PORT` | HEP destination port (default: 8888). Overridden by `--hepd-port` |
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `REPORT_TYPE` | `table_full` | Report type: `table`, `json`, `table_full`, `json_full`. Overridden by `-r/--report` |
+| `LOG_LEVEL` | `0` | Log level (0-3). Note the default is `0` (silent) - raise it with `-v`/`-d` if you expect console output from the test containers. Overridden by `-l/--log-level` |
+| `MAX_SINGLE_TEST_TIME` | `600` | Maximum time for a single test in seconds. Overridden by `-t/--timeout` |
+| `OPENSIPS_TLS_PORT` | `6051` | OpenSIPS TLS port. Overridden by `--tls-port` |
+| `OPENSIPS_WSS_PORT` | `9443` | OpenSIPS WSS port. Overridden by `--wss-port` |
+| `OPENSIPS_HEPS_PORT` | `8887` | HEP source port. Overridden by `--heps-port` |
+| `OPENSIPS_HEPD_PORT` | `8888` | HEP destination port. Overridden by `--hepd-port` |
 {: .table}
 
 ## Configuration
@@ -307,7 +324,7 @@ sipp <target> -sf <scenario.xml> -m 1 -mp <random_port> -i <container_ip>
 ### Custom Scripts
 {: #custom-scripts .title.title--mini}
 
-Built by default with `./build.sh`. Scripts run only when a scenario declares a `<section type="script">`. Script sources live in the repo-root `scripts/` folder, mounted read-only into the container on every run — adding or editing a script needs no rebuild. Shipped samples are inert `*.sample` files (activate with `cp scripts/ping_host.sh.sample scripts/ping_host.sh`); user scripts are gitignored so `git pull` / `docker pull` never touch them. The image ships `curl`, `jq`, `ping`, `dig`, python `requests` and the `volts_results` / `volts-result` result-query helpers (`post` scripts can read e.g. SIP Call-IDs: `volts-result vp --get callid`; a label matching several call legs returns all of them, `--first`/`--last` pick one); optional extra pip deps go in local `scripts/requirements.txt` and are installed at runtime into `tmp/scripter-deps` (no image rebuild). Full developer guide: [`scripts/README.md`](https://github.com/igorolhovskiy/volts/blob/main/scripts/README.md).
+Built by default with `./build.sh`. Scripts run only when a scenario declares a `<section type="script">`. Script sources live in the repo-root `scripts/` folder, mounted read-only into the container on every run — adding or editing a script needs no rebuild. Shipped samples are inert `*.sample` files (activate with `cp scripts/ping_host.sh.sample scripts/ping_host.sh`); user scripts are gitignored so `git pull` / `docker pull` never touch them. The image ships `curl`, `jq`, `ping`, `dig`, python `requests` and the `volts_results` / `volts-result` result-query helpers (`post` scripts can read e.g. SIP Call-IDs: `volts-result vp --get callid`; a label matching several call legs returns all of them, `--first`/`--last` pick one); optional extra pip deps go in local `scripts/requirements.txt` and are installed at runtime into `tmp/scripter-deps` (no image rebuild). Full developer guide: [`scripts/README.md`](https://github.com/igorolhovskiy/volts/blob/main/scripts/README.md). End-to-end wiring demos: [`scenarios/37-call-codec-priority-assert.xml`](https://github.com/igorolhovskiy/volts/blob/main/scenarios/37-call-codec-priority-assert.xml) (codec offer + `assert_codec`) and [`scenarios/38-call-media-cdr-http.xml`](https://github.com/igorolhovskiy/volts/blob/main/scenarios/38-call-media-cdr-http.xml) (media + CDR `http_check` by Call-ID).
 
 | Attribute | Default | Description |
 |-----------|---------|-------------|
@@ -318,7 +335,7 @@ Built by default with `./build.sh`. Scripts run only when a scenario declares a 
 | `label` | script name | Human-readable name in logs and report error text |
 {: .table}
 
-Params are `<param name="" value=""/>` children (or text content for multi-line values), exported as UPPERCASE env vars inside the container via the mounted `script.xml` (not `docker --env` CLI). Never print params — failure tails land in the report. Exit `0` = PASS; non-zero = FAIL (`s_error` from stderr/stdout). Multiple `<section type="script">` blocks are merged. A failed `pre` script fails the scenario in the report, but the suite still continues into voip/sipp/media/`post`.
+Params are `<param name="" value=""/>` children (or text content for multi-line values), exported as UPPERCASE env vars inside the container via the mounted `script.xml` (not `docker --env` CLI) so special characters round-trip. They still appear in the container process environment — never print params or `VOLTS_PARAMS_JSON`. Exit `0` = PASS; non-zero = FAIL (`s_error` from stderr/stdout). Multiple `<section type="script">` blocks are merged, preserving document order. `pre` and `post` are independent — there is no database-style cleanup inversion. A failed `pre` script fails the scenario in the report, but the suite still continues into voip/sipp/media/`post`.
 
 **Example:**
 
@@ -365,9 +382,10 @@ Database configuration is done in XML, section `database`. There are 2 stages:
 | Attribute | Description |
 |-----------|-------------|
 | `name` | Table name |
-| `type` | Operation: `insert`, `replace`, or `delete` |
-| `continue_on_error` | Ignore errors and continue (optional) |
-| `cleanup_after_test` | Auto-cleanup on post stage for insert operations (optional) |
+| `type` | Operation: `insert`, `replace`, `delete` or `check`. Forming actual `INSERT`, `REPLACE`, `DELETE` and `SELECT COUNT(*)` SQL statements |
+| `continue_on_error` | Ignore errors and continue (optional). By default database actions stop after the first error |
+| `cleanup_after_test` | Optional, `false` by default. For `insert`: automatically forms a `delete` on `post` stage. For `check`: deletes matching rows immediately after the check passes |
+| `row_nums` | Required for `check`. Expected number of matching rows - exact (`"1"`) or range (`"1-3"`) |
 {: .table}
 
 **Example with Database:**
@@ -394,6 +412,45 @@ Database configuration is done in XML, section `database`. There are 2 stages:
 {% endraw %}
 {: .code}
 
+#### Checking Database State After a Call
+
+The `check` type verifies that the database got the expected rows during a test - CDR as is. It runs `SELECT COUNT(*)` with the specified field conditions and fails the scenario if the count doesn't match `row_nums`.
+
+Two features make time-scoped checks practical:
+
+- Prefix a `value` with a bash-style operator flag - the same convention used in `sox_filter`. Supported flags: `-eq` `=`, `-ne` `!=`, `-lt` `<`, `-le` `<=`, `-gt` `>`, `-ge` `>=`, `-like` `LIKE`. Without a flag, `=` is assumed (or `LIKE` when the value contains `%`).
+- Use `{test_start}` and `{test_end}` tokens anywhere in a `value` to reference when the scenario started and finished. These are **not** Jinja2 - they pass through the prepare step unchanged and are substituted at runtime by the database container. An optional strftime format can be appended after `:`, for example `{test_start:%Y-%m-%d %H:%M}`.
+
+**Verify a call was recorded in Asterisk CDR:**
+
+After a completed call, Asterisk writes a row to its `cdr` table. The example below asserts in the `post` stage that the row exists. The `calldate` range pins the check to rows written during this specific test run, so a stale CDR from a previous run of the same scenario won't cause a false pass.
+
+{% raw %}
+```xml
+<config>
+    <section type="database">
+        <actions>
+            <!-- Check that Asterisk wrote a CDR row for this call -->
+            <action database="astdb" stage="post">
+                <table name="cdr" type="check" row_nums="1">
+                    <field name="src"         value="{{ a.90001.label }}"/>
+                    <field name="dst"         value="{{ a.88881.label }}"/>
+                    <field name="disposition" value="ANSWERED"/>
+                    <!-- Scope to rows written during this test run only -->
+                    <field name="calldate"    value="-ge {test_start}"/>
+                    <field name="calldate"    value="-le {test_end}"/>
+                </table>
+            </action>
+        </actions>
+    </section>
+    <section type="voip_patrol">
+        <!-- register, accept and call actions here -->
+    </section>
+</config>
+```
+{% endraw %}
+{: .code}
+
 ### Media Check
 {: #media-check .title.title--mini}
 
@@ -404,13 +461,14 @@ Analyze call recordings with various media tools.
 | Attribute | Description |
 |-----------|-------------|
 | `type` | Media check type: `sox`, `sox_st`, or `fpcalc` |
-| `file` | Path to file (must use `/output/` prefix) |
-| `delete_after` | Delete file after check: `yes`/`no`/`keep_failed` (default) |
+| `file` | Path to the file to check. Must be aligned with `record` in one of the `voip_patrol` actions. The `/output/` prefix is optional - only the basename is used, and `/output/` is prepended automatically |
+| `delete_after` | Delete file after check: `yes`/`no`/`keep_failed` (default). `keep_failed` keeps the file if the media test did not pass |
 | `print_debug` | Print debug info: `yes`/`no` (default) |
+| `length` | Expected length of the sound file in seconds. Supports `<min>-<max>` format. Works for both `sox`/`sox_st` (where it becomes a `length s` filter) and `fpcalc` |
 | `sox_filter` | Used if `type` is `sox`/`sox_st`. Semicolon-separated expressions for SoX validation |
 | `fingerprint` | Used if `type` is `fpcalc`. Raw fingerprint from `fpcalc` tool |
-| `length` | Used if `type` is `fpcalc`. Expected length in seconds. Supports `<min>-<max>` format |
 | `likeness` | Used if `type` is `fpcalc`. Minimum similarity score (default: `0.9`) |
+| `max_offset` | Used if `type` is `fpcalc`. Integer offset allowed when comparing fingerprints; each `N` is roughly 0.5s. Use it when you expect audio "drift" during the test. `0` by default |
 {: .table}
 
 #### SoX Media Check
@@ -841,28 +899,40 @@ Run tagged tests:
 ## Results
 {: #results .title}
 
-Rebuilding the report image always adds a **Script** column (`N/A` when unused).
+A component column (**VoIP Patrol**, **SIPP**, **Database**, **Media**, **Script**) is printed only when at least one scenario in the run actually exercised that component. Scenarios in the same run that did not use it show `N/A`. So the exact set of columns depends on what you ran - a run of nothing but `sipp` scenarios prints no Database, Media or Script column at all.
 
 After running tests, you'll get a table like this:
 
 ```
-+---------------------------------------+-----------------------------------------------------------+------+----------+-------+--------+--------+------------------+
-|                              Scenario |                                               VoIP Patrol | SIPP | Database | Media | Script | Status |             Text |
-+---------------------------------------+-----------------------------------------------------------+------+----------+-------+--------+--------+------------------+
-|                           01-register |                                                      PASS |  N/A |      N/A |   N/A |    N/A |   PASS |  Scenario passed |
-|                                       |                                      Register 88881       |      |          |       |        |   PASS | Main test passed |
-|                          02-call-echo |                                                      PASS |  N/A |      N/A |   N/A |    N/A |   PASS |  Scenario passed |
-|                                       |                                      Call to 11111 (echo) |      |          |       |        |   PASS | Main test passed |
-|            51-call-echo-media-control |                                                      PASS |  N/A |      N/A |  PASS |    N/A |   PASS |  Scenario passed |
-|                                       |                                      Call to 11111 (echo) |      |          |       |        |   PASS | Main test passed |
-| 52-delayed-call-forward-unconditional |                                                      PASS |  N/A |     PASS |   N/A |    N/A |   PASS |  Scenario passed |
-|                                       |                                      Register 90012       |      |          |       |        |   PASS | Main test passed |
-|                                       |                                      Register 90013       |      |          |       |        |   PASS | Main test passed |
-|                                       |                      Receive call on 90012 and not answer |      |          |       |        |   PASS |    Call canceled |
-|                                       |   Call from 90011 to 90012 (delay forward 25 sec) ->90013 |      |          |       |        |   PASS | Main test passed |
-|                                       |                       Receive call on 90013       finally |      |          |       |        |   PASS | Main test passed |
-|                53-server-check-health |                                                       N/A | PASS |      N/A |   N/A |    N/A |   PASS | SIPP test passed |
-+---------------------------------------+-----------------------------------------------------------+------+----------+-------+--------+--------+------------------+
++---------------------------------------+-----------------------------------------------------------+------+----------+-------+--------+------------------+
+|                              Scenario |                                               VoIP Patrol | SIPP | Database | Media | Status |             Text |
++---------------------------------------+-----------------------------------------------------------+------+----------+-------+--------+------------------+
+|                           01-register |                                                      PASS |  N/A |      N/A |   N/A |   PASS |  Scenario passed |
+|                                       |                                      Register 88881       |      |          |       |   PASS | Main test passed |
+|                          02-call-echo |                                                      PASS |  N/A |      N/A |   N/A |   PASS |  Scenario passed |
+|                                       |                                      Call to 11111 (echo) |      |          |       |   PASS | Main test passed |
+|            51-call-echo-media-control |                                                      PASS |  N/A |      N/A |  PASS |   PASS |  Scenario passed |
+|                                       |                                      Call to 11111 (echo) |      |          |       |   PASS | Main test passed |
+| 52-delayed-call-forward-unconditional |                                                      PASS |  N/A |     PASS |   N/A |   PASS |  Scenario passed |
+|                                       |                                      Register 90012       |      |          |       |   PASS | Main test passed |
+|                                       |                                      Register 90013       |      |          |       |   PASS | Main test passed |
+|                                       |                      Receive call on 90012 and not answer |      |          |       |   PASS |    Call canceled |
+|                                       |   Call from 90011 to 90012 (delay forward 25 sec) ->90013 |      |          |       |   PASS | Main test passed |
+|                                       |                       Receive call on 90013       finally |      |          |       |   PASS | Main test passed |
+|                53-server-check-health |                                                       N/A | PASS |      N/A |   N/A |   PASS | SIPP test passed |
++---------------------------------------+-----------------------------------------------------------+------+----------+-------+--------+------------------+
+```
+{: .code}
+
+The same run with custom script actions added to one scenario gains a **Script** column, by exactly the rule above:
+
+```
++----------------------+-------------+------+----------+-------+--------+--------+------------------+
+|             Scenario | VoIP Patrol | SIPP | Database | Media | Script | Status |             Text |
++----------------------+-------------+------+----------+-------+--------+--------+------------------+
+| 60-call-with-scripts |        PASS |  N/A |      N/A |   N/A |   PASS |   PASS |  Scenario passed |
+|         02-call-echo |        PASS |  N/A |      N/A |   N/A |    N/A |   PASS |  Scenario passed |
++----------------------+-------------+------+----------+-------+--------+--------+------------------+
 ```
 {: .code}
 

@@ -335,23 +335,13 @@ check_images() {
 }
 
 delete_containers() {
-    docker stop ${M_CONTAINER_NAME} >> /dev/null 2>&1
-    docker stop ${SIPP_CONTAINER_NAME} >> /dev/null 2>&1
-    docker stop ${D_CONTAINER_NAME} >> /dev/null 2>&1
-    docker stop ${S_CONTAINER_NAME} >> /dev/null 2>&1
-    docker stop ${R_CONTAINER_NAME} >> /dev/null 2>&1
-    docker stop ${P_CONTAINER_NAME} >> /dev/null 2>&1
-    docker stop ${VP_CONTAINER_NAME} >> /dev/null 2>&1
-    docker stop ${PROXY_CONTAINER_NAME} >> /dev/null 2>&1
-
-    docker rm ${M_CONTAINER_NAME} >> /dev/null 2>&1
-    docker rm ${SIPP_CONTAINER_NAME} >> /dev/null 2>&1
-    docker rm ${D_CONTAINER_NAME} >> /dev/null 2>&1
-    docker rm ${S_CONTAINER_NAME} >> /dev/null 2>&1
-    docker rm ${R_CONTAINER_NAME} >> /dev/null 2>&1
-    docker rm ${P_CONTAINER_NAME} >> /dev/null 2>&1
-    docker rm ${VP_CONTAINER_NAME} >> /dev/null 2>&1
-    docker rm ${PROXY_CONTAINER_NAME} >> /dev/null 2>&1
+    local c
+    for c in ${M_CONTAINER_NAME} ${SIPP_CONTAINER_NAME} ${D_CONTAINER_NAME} \
+             ${S_CONTAINER_NAME} ${R_CONTAINER_NAME} ${P_CONTAINER_NAME} \
+             ${VP_CONTAINER_NAME} ${PROXY_CONTAINER_NAME}; do
+        docker stop "${c}" >> /dev/null 2>&1
+        docker rm "${c}" >> /dev/null 2>&1
+    done
 }
 
 run_scenario() {
@@ -543,13 +533,15 @@ parse_arguments() {
 
 clean_tmp() {
     rm -rf tmp/input/*
-    rm -rf tmp/input/*
+    rm -rf tmp/output/*
 }
 
 # Script controlled variables
 DIR_PREFIX=`pwd`
 SCENARIOS=()
-COMPONENTS="prepare vp report database media sipp opensips"
+# Keep in sync with COMPONENTS in build.sh - check_images() pulls the same
+# registry names that build.sh builds and pushes.
+COMPONENTS="prepare vp report database media sipp opensips scripter"
 
 # Determine if we're running script using podman or docker.
 # SCRIPTS_VOLUME_SUFFIX is separate: the read-only scripts mount needs

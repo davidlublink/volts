@@ -5,13 +5,13 @@
 
 **Voip Open Linear Tester Suite**
 
-Functional tests for a VoIP systems based on [`voip_patrol`](https://github.com/igorolhovskiy/voip_patrol), [`sipp`](https://github.com/SIPp/sipp), [`sox`](https://sourceforge.net/projects/sox/), [`chromaprint`](https://acoustid.org/chromaprint), [`opensips`](https://opensips.org/), and [`docker`](https://www.docker.com/)
+Functional tests for VoIP systems based on [`voip_patrol`](https://github.com/igorolhovskiy/voip_patrol), [`sipp`](https://github.com/SIPp/sipp), [`sox`](https://sourceforge.net/projects/sox/), [`chromaprint`](https://acoustid.org/chromaprint), [`opensips`](https://opensips.org/), and [`docker`](https://www.docker.com/)
 
 ## 10'000 ft. view
 
 The system is designed to run simple call scenarios, that you usually do with your desk phones.</br>
 Scenarios are run one by one from `scenarios` folder in alphabetical order, which could be considered a limitation, but also allows you to reuse the same accounts in a different set of tests. This stands for `Linear` in the name ;)
-So, call some destination(s) with one(or more) device(s) and control call arrival on another phone(s).</br>
+So, call some destination(s) with one (or more) device(s) and control call arrival on another phone(s).</br>
 But wait, there is more. VOLTS also can integrate with your MySQL and/or PostgreSQL databases to write some data there before the test and remove it after.</br>
 Also, it can record (and play, obviously) media during the call and do media checks of these files</br>
 It will make and receive calls and configure the database.</br>
@@ -30,14 +30,14 @@ The suite consists of 10 parts, that are running sequentially
 8. Running custom scripts (`stage=post`) last, so all JSONL result files are readable.
 ---
 9. Tearing down a `Websocket-TLS` proxy.
-10. Report - at this part we're analyzing the results of the previous steps reading and interpreting file obtained running steps 3-8. Printing results in the desired way. Table by default.
-Steps 3-8 are running sequentially against scenarios files prepared in step 1. One at a time. Again, it's for `Linear`
+10. Report - at this part we're analyzing the results of the previous steps reading and interpreting file obtained running steps 3-8. Printing results in the desired way. `table_full` by default.
+Steps 3-8 are running sequentially against scenario files prepared in step 1. One at a time. Again, it's for `Linear`
 
 ## Building
 
 You can build images locally or pull existing from a `dockerhub`.</br>
 Suite is designed to run locally from your Linux PC or Mac. And of course, `docker` should be installed. It's up to you.</br>
-*Notes on using `podman`: I was able to run VOTLS using `podman-docker` package. One obstacle by default - the volumes permissions inside a container. To address this issue please refer to [this article](https://www.redhat.com/en/blog/container-permission-denied-errors).*</br>
+*Notes on using `podman`: I was able to run VOLTS using `podman-docker` package. One obstacle by default - the volumes permissions inside a container. To address this issue please refer to [this article](https://www.redhat.com/en/blog/container-permission-denied-errors).*</br>
 To build, just run `./build.sh`. Script will build 8 `docker` images.</br>
 In a case if `voip_patrol` or `sipp` is updated, you need to rebuild these containers again, you can do it with `./build.sh -r <component>`, refer to `./build.sh --help`.
 
@@ -105,12 +105,15 @@ The `run.sh` script supports various command-line options for flexible test exec
 - `--hepd-port N` - Set HEP destination port
 
 #### Scenario Options
-- `<scenario_name>` - Run specific scenario (e.g., 001-register)
+- `<scenario_name>...` - Run one or more scenarios, space- and/or comma-separated (e.g., `001-register 002-call-echo` or `001-register,002-call-echo`)
 - `scenarios/<scenario_name>` - Run specific scenario with full path
 - `tag=<tags>` - Run scenarios with specific tags (e.g., tag=set1,set2)
 - `stop` - Stop and delete all containers
 - `sngrep` - Launch SIP packet capture tool
 - `dbclean` - Clean up test data from databases
+- `report-only` - Skip test execution and only generate the report from existing data
+
+`report-only` re-reads the JSONL results left in `tmp/output` by the previous run instead of running any tests, so pair it with `-r/--report` to re-render that same run in a different format (for example `./run.sh -r json_full report-only` after a `table` run) without touching your PBX again.
 
 #### Examples
 ```sh
@@ -120,6 +123,10 @@ The `run.sh` script supports various command-line options for flexible test exec
 # Run specific scenario
 ./run.sh 001-register
 ./run.sh scenarios/001-register.xml
+
+# Run several scenarios (space- and/or comma-separated)
+./run.sh 001-register 002-call-echo
+./run.sh 001-register,002-call-echo
 
 # Run with debug logging
 ./run.sh -l 3 001-register
@@ -138,27 +145,32 @@ The `run.sh` script supports various command-line options for flexible test exec
 ./run.sh stop          # Stop all containers
 ./run.sh sngrep        # Launch SIP packet capture
 ./run.sh dbclean       # Clean up databases
+./run.sh report-only   # Re-generate the report from the previous run
+
+# Re-render the previous run as JSON without re-testing
+./run.sh -r json_full report-only
 ```
 
 After running the suite you can always find `voip_patrol` presented results in `tmp/output` folder.
 
-But simply run something blindly is boring, so before this, best to do some
+But simply running something blindly is boring, so before this, best to do some
 
 ## Configuration
 
-We suppose to configure 2 parts here. First, and most complexes are
+We suppose to configure 2 parts here. First, and most complex are
 
 ### Scenarios
 
 `VOLTS` scenarios are combined `voip_patrol`/`sipp`, `database`, and `media_check` scenarios, that are just being templatized with `Jinja2` style. Mostly done not to repeat some passwords, usernames, domains, etc.</br>
 Also, due to using `jinja2-time` extension, it's possible to use dynamic time/date values in your scenarios, for example testing some time-based rules on your PBX. For full documentation on how to use this type of data, please refer to [`jinja2-time`](https://github.com/hackebrot/jinja2-time) documentation.</br>
-As you will see below, the core for all type of tests are actually `voip_patrol` or `sipp`, others are just helpers around.
+Standard `Jinja2` `{% include %}` also works, resolved relative to the `scenarios` folder, so repeated blocks can be factored into reusable snippets - see [`scenarios/helpers/`](scenarios/helpers/) and their use in [`scenarios/33-register-wait-for-call-wss.xml`](scenarios/33-register-wait-for-call-wss.xml) and [`scenarios/34-sipp-load-register.xml`](scenarios/34-sipp-load-register.xml).</br>
+As you will see below, the core for all types of tests is actually `voip_patrol` or `sipp`, others are just helpers around.
 #### Global config
 
 Values for templates are taken from `scenarios/config.yaml`</br>
-One thing to mention here, is that vars from `global` section transform to `c.` (for `config` or `g.` for `global`, `c.` and `.g` are equal) and from `accounts` to `a.` in templates for shorter notation.</br>
+One thing to mention here, is that vars from `global` section transform to `c.` (for `config` or `g.` for `global`, `c.` and `g.` are equal) and from `accounts` to `a.` in templates for shorter notation.</br>
 There is a special name `scenario_name` that is transforming to a scenario file name stripped `.xml` extension.</br>
-There is also `env` variable that exposes system environment variables to templates. Use it when you need to pass runtime values without modifying `config.yaml`:
+There is also an `env` variable that exposes system environment variables to templates. Use it when you need to pass runtime values without modifying `config.yaml`:
 ```xml
 {{ env.MY_VAR }}                        <!-- empty string if not set -->
 {{ env.MY_VAR | default('fallback') }}  <!-- explicit fallback value -->
@@ -282,7 +294,7 @@ sipp <target> -sf <scenario.xml> -m 1 -mp <random_port> -i <container_ip>
 | `call_rate` | `-r` option in SIPP. Set the call rate (in calls per seconds). 10 by default. |
 | `max_calls` | `-m` option in SIPP. Stop the test and exit when 'max_calls' calls are processed. 1 by default. |
 | `max_concurrent_calls` | `-l` option in SIPP. Set the maximum number of simultaneous calls. 10 by default. |
-| `total_timeout` | How long to wait for a test to preform in seconds. 600 (10 minutes) by default |
+| `total_timeout` | How long to wait for a test to perform in seconds. 600 (10 minutes) by default |
 
 
 #### Custom scripts
@@ -297,7 +309,7 @@ Built by default with `./build.sh`. Scripts run only when a scenario declares a 
 | `timeout` | `60` | Seconds before the script process tree is killed |
 | `label` | script name | Human-readable name in logs and report error text |
 
-Params are `<param name="" value=""/>` children (or text content for multi-line values), exported as UPPERCASE env vars inside the container. They travel via the mounted `script.xml` (not `docker --env` CLI) so special characters round-trip; they still appear in the container process environment — never print params or `VOLTS_PARAMS_JSON`. Exit `0` = PASS, non-zero = FAIL (stderr/stdout tail becomes `s_error`). `pre` and `post` are independent — there is no database-style cleanup inversion. A failed `pre` script fails the scenario in the report, but `run.sh` still continues into voip/sipp/media/`post`.
+Params are `<param name="" value=""/>` children (or text content for multi-line values), exported as UPPERCASE env vars inside the container. They travel via the mounted `script.xml` (not `docker --env` CLI) so special characters round-trip; they still appear in the container process environment — never print params or `VOLTS_PARAMS_JSON`. Exit `0` = PASS, non-zero = FAIL (stderr/stdout tail becomes `s_error`). Multiple `<section type="script">` blocks in one scenario are merged into a single action list, preserving document order. `pre` and `post` are independent — there is no database-style cleanup inversion. A failed `pre` script fails the scenario in the report, but `run.sh` still continues into voip/sipp/media/`post`.
 
 `post` scripts can query earlier results (e.g. SIP Call-IDs) via the baked-in helpers: `volts-result vp --get callid` in bash or `from volts_results import vp_tests` in python. A label matching several call legs (`call_count > 1`) returns all of them — use `--first`/`--last` to pick one.
 
@@ -342,7 +354,7 @@ So, inside the `database` action you specify the tables you're working with. Eac
 | `name` | Actually name of the table we're working with. |
 | `type` | Could be `insert`, `replace`, `delete` and `check`. Forming actual `INSERT`, `REPLACE`, `DELETE` and `SELECT COUNT(*)` SQL statements for the database. |
 | `continue_on_error` | Optional. Em.. ignore errors on performed actions and continue no matter what. By default database actions will be stopped after encountering the first error. |
-| `cleanup_after_test` | Optional. For `insert`: automatically forms a `delete` on `post` stage. For `check`: deletes matching rows immediately after the check passes. |
+| `cleanup_after_test` | Optional. For `insert`: automatically forms a `delete` on `post` stage. For `check`: deletes matching rows immediately after the check passes. `false` by default. |
 | `row_nums` | Required for `check`. Expected number of matching rows — exact (`"1"`) or range (`"1-3"`). |
 
 **Make a register with the database**
@@ -463,31 +475,31 @@ After a completed call, Asterisk writes a row to its `cdr` table. The example be
 ```
 
 #### Media check
-You can analyze calls recording with various media tools.</br>
+You can analyze call recordings with various media tools.</br>
 Media check is also described in XML
 | Attribute | Description |
 | --- | --- |
 | `type` | Mandatory. Media check test to be performed. Currently `sox`/`sox_st`/`fpcalc`. |
-| `file` | Mandatory. Path to file to check. Have to be aligned with `record` in one of `voip_patrol` actions. Best to have it with distinct names, see the example below for a better picture |
-| `delete_after` | Do we delete file after media check? `yes`/`no`/`keep_failed`. `keep_failed` by default. This means we keep the file if the media test did not passed |
+| `file` | Mandatory. Path to file to check. Has to be aligned with `record` in one of `voip_patrol` actions. Best to have it with distinct names, see the example below for a better picture |
+| `delete_after` | Do we delete file after media check? `yes`/`no`/`keep_failed`. `keep_failed` by default. This means we keep the file if the media test did not pass |
 | `print_debug` | Print debug info on file on the console while testing. Useful for adjusting `filter` parameters or getting actual fingerprint via `fpcalc`. `yes`/`no`. `no` by default |
 | `length` | Expected length of a sound file in seconds. Supports `<min>-<max>` format. (In a case of `sox` uses `length s` field, see below) |
-| `sox_filter` | Used if `type` is `sox`. Semicolon-separated expressions to test values obtained by SoX utility with the given file. Usually to check some float values like length or amplitude. See below more detailed description |
+| `sox_filter` | Used if `type` is `sox`/`sox_st`. Semicolon-separated expressions to test values obtained by SoX utility with the given file. Usually to check some float values like length or amplitude. See below more detailed description |
 | `fingerprint` | Used if `type` is `fpcalc`. Fingerprint in a `-raw` form obtained from `fpcalc` tool |
 | `likeness` | Used if `type` is `fpcalc`. Minimal likeness or similarity. Default value - `0.9`. See the explanation below |
 | `max_offset` | Used if `type` is `fpcalc`. Possible integer offset when comparing fingerprints. Each `N` corresponds roughly to 0.5s. Allows to check if you expect sort of audio "drifts" during the test. `0` by default |
 
 ##### SoX media check
 Within this check parameters from the `file` are collected by `sox` utility, more precisely - `sox --i <file>`, `sox <file> -n stat`, `sox <file> -n stats`.</br>
-In a `sox_filter` attribute you can write a string to check some given values against collected parameters. All filter expressions should be true to test pass. Best to be explained on the example</br>
+In a `sox_filter` attribute you can write a string to check some given values against collected parameters. All filter expressions should be true for the test to pass. Best to be explained on the example</br>
 *Note: you can trim silence at the start and the end of the record with using `sox_st` as a `type`. This allows a bit better file fingerprinting*
 ```
 sox_filter="length s -ge 10; length s -le 11"
 ```
-Here we have 1 parameter - `length s` that should be greater than or equal 10 and less than or equal 11. `length s` is one of the result parameters that are obtained by `sox <file> -n stats`.</br>
-Point here is used not traditional `<=` style notation, but `bash` (`-eq` is `==`, `-lt` is `<`, `-gt` is `>`, `-le` is `<=`, `-ge` is `>=`, `-ne` is `!=`) style comparsion operators.</br>
+Here we have 1 parameter - `length s` that should be greater than or equal to 10 and less than or equal to 11. `length s` is one of the result parameters that are obtained by `sox <file> -n stats`.</br>
+Point here is used not traditional `<=` style notation, but `bash` (`-eq` is `==`, `-lt` is `<`, `-gt` is `>`, `-le` is `<=`, `-ge` is `>=`, `-ne` is `!=`) style comparison operators.</br>
 *Note: in a case of length you can use `length` parameter, like `length="10-11"` for shorter notation.*</br>
-This is done due to traditional comparison symbols (`<`,`>`) are part of XML notation</br>
+This is done because traditional comparison symbols (`<`,`>`) are part of XML notation</br>
 Getting parameters names is simple - they are converted from `sox` outputs, for example:
 ```
 # sox 8000_12s.wav -n stats
@@ -514,7 +526,7 @@ sox_filter="length s -ge 11; crest factor -lt 10; bit-depth -eq 15/16"
 All number-like values are automatically treated as numbers and you can apply `-lt`, `-ge` type of comparisons.</br></br>
 **Make a call to echo number and analyze the outcome**
 ```xml
-<!-- Call echo service and name sure receive an answer -->
+<!-- Call echo service and make sure receive an answer -->
 <config>
     <section type="voip_patrol">
         <actions>
@@ -537,7 +549,7 @@ All number-like values are automatically treated as numbers and you can apply `-
                 play="{{ c.play_file }}"
                 rtp_stats="true"
                 srtp="{{ a.88881.srtp }}"
-                <!-- We heed to record file on an answer -->
+                <!-- We need to record file on an answer -->
                 record="{{ scenario_name }}.wav"
             />
             <action type="wait" complete="true" ms="30000"/>
@@ -563,7 +575,7 @@ Actually, calculate "likeness" or similarity of an audio to provided fingerprint
 
 **Make a call to echo number and analyze the outcome**
 ```xml
-<!-- Call echo service and name sure receive an answer -->
+<!-- Call echo service and make sure receive an answer -->
 <config>
     <section type="voip_patrol">
         <actions>
@@ -586,7 +598,7 @@ Actually, calculate "likeness" or similarity of an audio to provided fingerprint
                 play="{{ c.play_file }}"
                 rtp_stats="true"
                 srtp="{{ a.88881.srtp }}"
-                <!-- We heed to record file on an answer -->
+                <!-- We need to record file on an answer -->
                 record="{{ scenario_name }}.wav"
             />
             <action type="wait" complete="true" ms="30000"/>
@@ -626,24 +638,26 @@ Use the command-line options described in the [Running](#running) section for mo
 #### Environment Variables
 You can also set these environment variables to override default behavior:
 
-| Variable name | Description |
-| --- | --- |
-|`REPORT_TYPE` | Report type provided at the end: `table`, `json`, `table_full`, `json_full`. Can be overridden with `-r/--report` option |
-| `LOG_LEVEL` | `voip_patrol`/`sipp` log level on console (0-3). Can be overridden with `-l/--log-level` option |
-| `MAX_SINGLE_TEST_TIME` | Maximum time single test is allowed to run in seconds. Can be overridden with `-t/--timeout` option |
+| Variable name | Default | Description |
+| --- | --- | --- |
+|`REPORT_TYPE` | `table_full` | Report type provided at the end: `table`, `json`, `table_full`, `json_full`. Can be overridden with `-r/--report` option |
+| `LOG_LEVEL` | `0` | `voip_patrol`/`sipp` log level on console (0-3). Note the default is `0` (silent) - raise it with `-v`/`-d` if you expect console output from the test containers. Can be overridden with `-l/--log-level` option |
+| `MAX_SINGLE_TEST_TIME` | `600` | Maximum time single test is allowed to run in seconds. Can be overridden with `-t/--timeout` option |
 
 #### Advanced Configuration
 Additional variables for advanced users:
-| Variable name | Description |
-| --- | --- |
-| `OPENSIPS_TLS_PORT` | OpenSIPS TLS port (default: 6051). Can be overridden with `--tls-port` option |
-| `OPENSIPS_WSS_PORT` | OpenSIPS WSS port (default: 9443). Can be overridden with `--wss-port` option |
-| `OPENSIPS_HEPS_PORT` | HEP source port (default: 8887). Can be overridden with `--heps-port` option |
-| `OPENSIPS_HEPD_PORT` | HEP destination port (default: 8888). Can be overridden with `--hepd-port` option |
+| Variable name | Default | Description |
+| --- | --- | --- |
+| `OPENSIPS_TLS_PORT` | `6051` | OpenSIPS TLS port. Can be overridden with `--tls-port` option |
+| `OPENSIPS_WSS_PORT` | `9443` | OpenSIPS WSS port. Can be overridden with `--wss-port` option |
+| `OPENSIPS_HEPS_PORT` | `8887` | HEP source port. Can be overridden with `--heps-port` option |
+| `OPENSIPS_HEPD_PORT` | `8888` | HEP destination port. Can be overridden with `--hepd-port` option |
 
 ## Results
 
 As a result, you will have a table like this.
+
+A component column (**VoIP Patrol**, **SIPP**, **Database**, **Media**, **Script**) is printed only when at least one scenario in the run actually exercised that component. Scenarios in the same run that did not use it show `N/A`. So the exact set of columns depends on what you ran - a run of nothing but `sipp` scenarios prints no Database, Media or Script column at all.
 ```
 +---------------------------------------+-----------------------------------------------------------+------+----------+-------+--------+------------------+
 |                              Scenario |                                               VoIP Patrol | SIPP | Database | Media | Status |             Text |
@@ -668,7 +682,7 @@ As a result, you will have a table like this.
 Scenarios ['49-teams-follow-forward', '50-team-no-answer-forward'] are failed!
 ```
 
-A **Script** column is added only when at least one scenario in the run executed custom script actions (`N/A` for scenarios in that run without a script section); runs without scripts keep the original table above.
+The same run with custom script actions added to one scenario gains a **Script** column, by exactly the rule above:
 ```
 +----------------------+-------------+------+----------+-------+--------+--------+------------------+
 |             Scenario | VoIP Patrol | SIPP | Database | Media | Script | Status |             Text |
@@ -677,7 +691,7 @@ A **Script** column is added only when at least one scenario in the run executed
 |         02-call-echo |        PASS |  N/A |      N/A |   N/A |    N/A |   PASS |  Scenario passed |
 +----------------------+-------------+------+----------+-------+--------+--------+------------------+
 ```
-That means your system is not OK, or something need to be tuned with the tests.</br>
+That means your system is not OK, or something needs to be tuned with the tests.</br>
 Not really much to describe here, just read info on the console
 
 ## Scenario Examples
@@ -699,7 +713,7 @@ Examples shown in this section can duplicate examples from the section above. Fo
                 password="{{ a.88881.password }}"
                 registrar="{{ c.domain }}"
                 realm="{{ a.88881.domain }}"
-                <!-- We are expecting to get 200 code here, so REGISTER is successfull -->
+                <!-- We are expecting to get 200 code here, so REGISTER is successful -->
                 expected_cause_code="200"
             />
             <!-- Just wait 2 sec for all timeouts -->
@@ -738,7 +752,7 @@ Examples shown in this section can duplicate examples from the section above. Fo
                 password="{{ a.88881.password }}"
                 registrar="{{ c.domain }}"
                 realm="{{ a.88881.domain }}"
-                <!-- We are expecting to get 200 code here, so REGISTER is successfull -->
+                <!-- We are expecting to get 200 code here, so REGISTER is successful -->
                 expected_cause_code="200"
             />
             <!-- Just wait 2 sec for all timeouts -->
@@ -749,7 +763,7 @@ Examples shown in this section can duplicate examples from the section above. Fo
 ```
 
 ### Expect fail on register
-We're deleting data the from database and restoring it afterward.
+We're deleting the data from the database and restoring it afterward.
 ```xml
 <config>
     <section type="database">
@@ -778,7 +792,7 @@ We're deleting data the from database and restoring it afterward.
             />
             <action type="wait" complete="true" ms="2000"/>
         </actions>
-    /section>
+    </section>
 </config>
 ```
 
@@ -845,7 +859,7 @@ Also trick, `match_account` in `accept` perfectly links with `account` in `regis
 </config>
 ```
 ### Advanced call scenario
-Register with 2 accounts and call from he third one, not answer on 1st and make sure we receive a call on the second. So, your PBX should be configured to make a Forward-No-Answer from `88881` to `88882`.</br>
+Register with 2 accounts and call from the third one, not answer on 1st and make sure we receive a call on the second. So, your PBX should be configured to make a Forward-No-Answer from `88881` to `88882`.</br>
 Also make sure, that on `88882` we got the call from `90001` (based on CallerID).
 ```xml
 <config>
@@ -1067,7 +1081,7 @@ And now we need to populate all databases and make a call!
 ### Adding media check.
 
 ```xml
-<!-- Call echo service and name sure receive an answer -->
+<!-- Call echo service and make sure receive an answer -->
 <config>
     <section type="voip_patrol">
         <actions>
@@ -1090,7 +1104,7 @@ And now we need to populate all databases and make a call!
                 play="{{ c.play_file }}"
                 rtp_stats="true"
                 srtp="{{ a.88881.srtp }}"
-                <!-- We heed to record file on answer -->
+                <!-- We need to record file on answer -->
                 record="{{ scenario_name }}.wav"
             />
             <action type="wait" complete="true" ms="30000"/>
@@ -1240,7 +1254,7 @@ Adding some auth to SIPP
 ```
 and some load as well. Why not?
 
-*Note: this example in particular was to test push notification server, that's why it have iOS references*
+*Note: this example in particular was to test push notification server, that's why it has iOS references*
 ```xml
 <config>
     <section type="database">
@@ -1384,7 +1398,7 @@ and some load as well. Why not?
 ```
 
 ### Running only selected tests.
-You can specify tests you want to run via CLI (space-separated) or can specify a `tag` (one or several comma-separated) on each test scenario, just adding a `tag` attribute to a `config` element.
+You can name the scenarios to run directly on the CLI (see [Scenario Options](#scenario-options)), or you can group them by `tag` - one or several comma-separated - by adding a `tag` attribute to a `config` element.
 ```xml
 <config tag='set1'>
     ...

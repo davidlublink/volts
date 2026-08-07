@@ -28,7 +28,9 @@ To run the site locally:
 
 ## Updating Content
 
-The main documentation content is in `index.md`. This file is generated from the main README.md but can be edited independently.
+The main documentation content is in `index.md`. It was originally derived from the top-level `README.md`, but it is **not** generated - it restructures that content for the web (different headings, Kramdown `{: .table}` / `{: .code}` attributes, `{% raw %}` guards around Jinja2 examples, and anchor IDs wired to the navigation).
+
+Because nothing regenerates it, `index.md` drifts silently. **When you change `README.md`, check whether `index.md` needs the same change** - especially CLI options, attribute tables, and defaults, which are where the two have diverged in the past.
 
 To update the navigation, modify the `navigation` section in `_config.yml`.
 
