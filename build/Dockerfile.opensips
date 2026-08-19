@@ -2,11 +2,13 @@ FROM python:3.13-slim-bookworm
 LABEL maintainer="Ihor Olkhovskyi <ihor.olkhovskyi@cern.ch>"
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV OPENSIPS_VERSION=3.6
+ENV OPENSIPS_CLI_VERSION=0.4.0
 
 RUN apt-get update && \
     apt-get install --assume-yes --no-install-recommends curl && \
     curl https://apt.opensips.org/opensips-org.gpg -o /usr/share/keyrings/opensips-org.gpg && \
-    echo "deb [signed-by=/usr/share/keyrings/opensips-org.gpg] https://apt.opensips.org bookworm 3.4-releases" > /etc/apt/sources.list.d/opensips.list && \
+    echo "deb [signed-by=/usr/share/keyrings/opensips-org.gpg] https://apt.opensips.org bookworm ${OPENSIPS_VERSION}-releases" > /etc/apt/sources.list.d/opensips.list && \
     apt-get update -qq && \
     apt-get install --assume-yes --no-install-recommends \
         m4 \
@@ -19,7 +21,7 @@ RUN apt-get update && \
         opensips-compression-module \
         sngrep \
         ssl-cert && \
-    pip install --no-cache-dir https://github.com/OpenSIPS/opensips-cli/archive/refs/tags/0.4.0.tar.gz && \
+    pip install --no-cache-dir https://github.com/OpenSIPS/opensips-cli/archive/refs/tags/${OPENSIPS_CLI_VERSION}.tar.gz && \
     ln -sf /usr/local/bin/opensips-cli /usr/bin/opensips-cli && \
     make-ssl-cert generate-default-snakeoil --force-overwrite && \
     apt-get clean && \
