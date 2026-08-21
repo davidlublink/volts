@@ -18,7 +18,7 @@ RUN apt-get update && \
     wget --no-verbose https://github.com/SIPp/sipp/releases/download/v${SIPP_VERSION}/sipp-${SIPP_VERSION}.tar.gz && \
     tar xf sipp-${SIPP_VERSION}.tar.gz && \
     cd sipp-${SIPP_VERSION} && \
-    cmake . -DUSE_GSL=1 -DUSE_PCAP=1 -DUSE_SSL=1 -DUSE_SCTP=1 && \
+    cmake . -DUSE_GSL=1 -DUSE_PCAP=1 -DUSE_SSL=1 -DUSE_SCTP=1 -DUSE_LOCAL_IP_HINTS=ON && \
     make -j$(nproc) && \
     make install && \
     rm -rf /var/lib/apt/lists/*

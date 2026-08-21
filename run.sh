@@ -78,9 +78,8 @@ control_opensips() {
             --platform linux/amd64 \
             -d \
             ${PROXY_IMAGE} >> /dev/null
-        # Give a time to start the container and push it a bit
-        sleep 1
-        cleanup_opensips_cache
+        # Give a time to start the container
+        sleep 5
     else
         echo "Websocket proxy stopping..."
         docker stop ${PROXY_CONTAINER_NAME} >> /dev/null 2>&1
