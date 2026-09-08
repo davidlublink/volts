@@ -71,6 +71,10 @@ accounts:
   'bob':
     username: '102'
     password: 'SuperSecretPass'
+
+  'carol':
+    username: '103'
+
   '88883':
     username: '88883'
     password: 'SuperSecretPass'
