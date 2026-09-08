@@ -2,8 +2,9 @@
 <config>
     <actions>
         <action type="codec" disable="all"/>
-        <action type="codec" enable="pcma" priority="250"/>
-        <action type="codec" enable="pcmu" priority="249"/>
+        <action type="codec" enable="pcma" priority="{{ c.pcma_priority }}"/>
+        <action type="codec" enable="pcmu" priority="{{ c.pcmu_priority }}"/>
+        <action type="codec" enable="opus" priority="{{ c.opus_priority }}"/>
         <action type="register" label="Register {{ a.alice.label }}"
             transport="{{ a.alice.transport }}"
             account="{{ a.alice.username }}"
@@ -27,13 +28,13 @@
             rtp_stats="true"
          />
 
-        <action type="call" label="Call from {{ a.bob.label }} to {{ a.alice.label }}"
+        <action type="call" label="Call from {{ a.bob.label }} to {{ a.alice.label }} via ##{{ a.alice.get('extension', a.alice.username) }}"
             transport="{{ a.bob.transport }}"
             expected_cause_code="200"
             caller="{{ a.bob.username }}@{{ c.domain }}"
-            callee="{{ a.alice.get('extension', a.alice.username) }}@{{ a.alice.domain }}"
+            callee="##{{ a.alice.get('extension', a.alice.username) }}@{{ a.alice.domain }}"
             from="sip:{{ a.bob.username }}@{{ c.domain }}"
-            to_uri="{{ a.alice.get('extension', a.alice.username) }}@{{ c.domain }}"
+            to_uri="##{{ a.alice.get('extension', a.alice.username) }}@{{ c.domain }}"
             max_duration="20" hangup="10"
             auth_username="{{ a.bob.username }}"
             password="{{ a.bob.password }}"
