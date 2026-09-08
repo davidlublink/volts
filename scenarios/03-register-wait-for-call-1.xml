@@ -38,7 +38,7 @@
             auth_username="{{ a.bob.username }}"
             password="{{ a.bob.password }}"
             realm="{{ c.domain }}"
-            rtp_stats="false"
+            rtp_stats="true"
             max_ring_duration="15"
             srtp="{{ a.bob.srtp }}"
             play="{{ c.play_file }}"
