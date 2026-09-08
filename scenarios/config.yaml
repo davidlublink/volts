@@ -1,13 +1,33 @@
 global:
   domain:           'sip.target.system'
   domain_wss:       'sip.target.system:8089'
+
+  pcmu_priority: 249
+  pcma_priority: 250
+  opus_priority: 248
+
+  # Values to test udp+rtp (unencrypted)
+  # transport:        'udp'
+  # srtp:             ''
+  # dtls:             ''
+
+  # Values to test tls+mandatory srtp
   transport:        'tls'
   srtp:             'sdes,force'
   dtls:             'dtls,force'
+
   play_file:        '/voice_ref_files/8000_2m30.wav'
   play_file_2:      '/voice_ref_files/test01_20s.wav'
   asterisk_context: 'company_users'
   stun_address:     'public.stun.server:3478'
+
+  # Number to dial to reach a service that will answer immediately and echo back RTP
+  # Note that any destination that answers and sends RTP is sufficient
+  echo_service:     '11111'
+
+  # Time, in milliseconds, to wait for call to answer. 
+  # Default time: 30
+  pause_after_call: '30000'
 databases:
   'sippproxydb':
     type:       'mysql'
@@ -43,6 +63,11 @@ accounts:
     # Set this if the username is different than the auth username.
     # Default: value from username field
     # auth_username: '101'
+
+    # Set this if the transport is different than default
+    # Default: value from global transport
+    # Values: tcp, udp, tls
+    # transport:        'udp'
 
   '88882':
     username: '88882'

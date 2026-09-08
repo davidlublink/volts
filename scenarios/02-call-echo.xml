@@ -2,23 +2,23 @@
 <config>
     <actions>
         <action type="codec" disable="all"/>
-        <action type="codec" enable="pcma" priority="250"/>
-        <action type="codec" enable="pcmu" priority="249"/>
+        <action type="codec" enable="pcma" priority="{{ c.pcma_priority }}"/>
+        <action type="codec" enable="pcmu" priority="{{ c.pcmu_priority }}"/>
         <action type="call" label="Call to 11111 (echo)"
-            transport="{{ a.88881.transport }}"
+            transport="{{ a.alice.transport }}"
             expected_cause_code="200"
-            caller="{{ a.88881.label }}@{{ c.domain }}"
-            callee="11111@{{ a.88881.domain }}"
-            from="sip:{{ a.88881.label }}@{{ c.domain }}"
+            caller="{{ a.alice.username }}@{{ c.domain }}"
+            callee="11111@{{ a.alice.domain }}"
+            from="sip:{{ a.alice.username }}@{{ c.domain }}"
             to_uri="11111@{{ c.domain }}"
             max_duration="20" hangup="10"
-            auth_username="{{ a.88881.username }}"
-            password="{{ a.88881.password }}"
+            auth_username="{{ a.alice.username }}"
+            password="{{ a.alice.password }}"
             realm="{{ c.domain }}"
             play="{{ c.play_file }}"
             rtp_stats="true"
-            srtp="{{ a.88881.srtp }}"
+            srtp="{{ a.alice.srtp }}"
         />
-    <action type="wait" complete="true" ms="30000"/>
+    <action type="wait" complete="true" ms="{{ c.pause_after_call }}"/>
     </actions>
 </config>
