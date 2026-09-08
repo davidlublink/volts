@@ -48,7 +48,7 @@ databases:
     base:       'userids'
     host:       'asterisk.local'
 accounts:
-  # Alice - Used in many scenarios formerly 88881
+  # Alice - Used in most scenarios
   'alice':
     # Default auth username, user portion of to header
     username: '101'
@@ -72,8 +72,13 @@ accounts:
     username: '102'
     password: 'SuperSecretPass'
 
+  # Has server side call forwarding to user alice
   'carol':
     username: '103'
+
+  # Has server side call forwarding to user carol who forwards to carlos
+  'carlos':
+    username: '104'
 
   '88883':
     username: '88883'
