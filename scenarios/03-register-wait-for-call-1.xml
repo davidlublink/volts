@@ -1,47 +1,50 @@
-<!-- Register with 88881 and receive call on it from 88882 using ## prefix -->
+<!-- Register with alice and receive call on it from bob using ## prefix -->
 <config>
     <actions>
         <action type="codec" disable="all"/>
         <action type="codec" enable="pcma" priority="250"/>
         <action type="codec" enable="pcmu" priority="249"/>
-        <action type="register" label="Register {{ a.88881.username }}"
-            transport="{{ a.88881.transport }}"
-            account="{{ a.88881.username }}"
-            username="{{ a.88881.label }}"
-            auth_username="{{ a.88881.username }}"
-            password="{{ a.88881.password }}"
+        <action type="register" label="Register {{ a.alice.label }}"
+            transport="{{ a.alice.transport }}"
+            account="{{ a.alice.username }}"
+            username="{{ a.alice.username }}"
+            auth_username="{{ a.alice.auth_username }}"
+            password="{{ a.alice.password }}"
             registrar="{{ c.domain }}"
-            realm="{{ c.domain }}"
+            realm="{{ a.alice.domain }}"
             expected_cause_code="200"
-            srtp="{{ a.88881.srtp }}"
+            srtp="{{ a.alice.srtp }}"
         />
-        <action type="wait" complete="true" ms="2000"/>
-        <action type="accept" label="Receive all calls"
+        <action type="wait" complete="true" ms="2000" label="Wait for registration to propagate"/>
+        <action type="accept" label="Receive call from {{ a.alice.label }}"
             call_count="1"
-            match_account="default"
+            match_account="{{ a.alice.username }}"
             hangup="10"
             code="200" reason="OK"
-            transport="{{ c.transport }}"
-            srtp="{{ c.srtp }}"
+            transport="{{ a.alice.transport }}"
+            srtp="{{ a.alice.srtp }}"
             play="{{ c.play_file }}"
             rtp_stats="true"
-        />
-        <action type="call" label="Call to ##{{ a.88881.label }} from {{ a.88882.label }}"
-            transport="{{ a.88882.transport }}"
+         />
+
+        <action type="call" label="Call from {{ a.bob.label }} to {{ a.alice.label }}"
+            transport="{{ a.bob.transport }}"
             expected_cause_code="200"
-            caller="{{ a.88882.label }}@{{ c.domain }}"
-            callee="##88881@{{ a.88881.domain }}"
-            from="sip:{{ a.88882.label }}@{{ c.domain }}"
-            to_uri="##88881@{{ c.domain }}"
+            caller="{{ a.bob.username }}@{{ c.domain }}"
+            callee="{{ a.alice.get('extension', a.alice.username) }}@{{ a.alice.domain }}"
+            from="sip:{{ a.bob.username }}@{{ c.domain }}"
+            to_uri="{{ a.alice.get('extension', a.alice.username) }}@{{ c.domain }}"
             max_duration="20" hangup="10"
-            auth_username="{{ a.88882.username }}"
-            password="{{ a.88882.password }}"
+            auth_username="{{ a.bob.username }}"
+            password="{{ a.bob.password }}"
             realm="{{ c.domain }}"
-            rtp_stats="true"
+            rtp_stats="false"
             max_ring_duration="15"
-            srtp="{{ a.88882.srtp }}"
+            srtp="{{ a.bob.srtp }}"
             play="{{ c.play_file }}"
+            rtp_port_min="5000"
+            rtp_port_max="6000"
         />
-        <action type="wait" complete="true" ms="30000"/>
+        <action type="wait" complete="true" ms="30000" label="Wait for call completion"/>
     </actions>
 </config>

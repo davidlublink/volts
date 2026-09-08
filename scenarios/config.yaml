@@ -7,14 +7,14 @@ global:
   opus_priority: 248
 
   # Values to test udp+rtp (unencrypted)
-  # transport:        'udp'
-  # srtp:             ''
-  # dtls:             ''
+  transport:        'udp'
+  srtp:             ''
+  dtls:             ''
 
   # Values to test tls+mandatory srtp
-  transport:        'tls'
-  srtp:             'sdes,force'
-  dtls:             'dtls,force'
+  # transport:        'tls'
+  # srtp:             'sdes,force'
+  # dtls:             'dtls,force'
 
   play_file:        '/voice_ref_files/8000_2m30.wav'
   play_file_2:      '/voice_ref_files/test01_20s.wav'
@@ -53,6 +53,10 @@ accounts:
     # Default auth username, user portion of to header
     username: '101'
 
+    # Extension to dial to reach this device(if different than username )
+    #  Default value is username field if this isn't set
+    # extension: '##101'
+
     # Password used to authenticate
     password: 'SuperSecretPass'
 
@@ -64,13 +68,8 @@ accounts:
     # Default: value from username field
     # auth_username: '101'
 
-    # Set this if the transport is different than default
-    # Default: value from global transport
-    # Values: tcp, udp, tls
-    # transport:        'udp'
-
-  '88882':
-    username: '88882'
+  'bob':
+    username: '102'
     password: 'SuperSecretPass'
   '88883':
     username: '88883'

@@ -1,7 +1,7 @@
 <!-- Test simple register -->
 <config>
     <actions>
-        <action type="register" label="Register {{ a.alice.username }}"
+        <action type="register" label="Register {{ a.alice.label }}"
             transport="{{ a.alice.transport }}"
             account="{{ a.alice.username }}"
             username="{{ a.alice.username }}"
