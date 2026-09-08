@@ -28,9 +28,22 @@ databases:
     base:       'userids'
     host:       'asterisk.local'
 accounts:
-  '88881':
-    username: '88881'
+  # Alice - Used in many scenarios formerly 88881
+  'alice':
+    # Default auth username, user portion of to header
+    username: '101'
+
+    # Password used to authenticate
     password: 'SuperSecretPass'
+
+    # Auth domain / realm
+    # Default: value from global domain config value
+    # domain: 'registrar.service.consul'
+
+    # Set this if the username is different than the auth username.
+    # Default: value from username field
+    # auth_username: '101'
+
   '88882':
     username: '88882'
     password: 'SuperSecretPass'
