@@ -1,66 +1,71 @@
-<!-- Register with 90002 and 92002 and make a call to 92002 which is delayed forwarded to 90002
-Receive a call to 92002, no answer, cancel and receive a call to 90002 finally -->
+<!-- Register with Alice and Chuck. Bob makes a call to Chuck, Chuck's device rings 30 seconds, no answer and the call is forwarded to Alice who answers -->
 <config>
     <actions>
         <action type="codec" disable="all"/>
         <action type="codec" enable="pcma" priority="250"/>
         <action type="codec" enable="pcmu" priority="249"/>
         <action type="codec" enable="opus" priority="248"/>
-        <action type="register" label="Register {{ a.90002.username }}"
-            transport="{{ a.90002.transport }}"
-            account="{{ a.90002.username }}"
-            username="{{ a.90002.label }}"
-            auth_username="{{ a.90002.username }}"
-            password="{{ a.90002.password }}"
+        <action type="register" label="Register {{ a.alice.label }}"
+            transport="{{ a.alice.transport }}"
+            account="{{ a.alice.username }}"
+            username="{{ a.alice.username }}"
+            auth_username="{{ a.alice.auth_username }}"
+            password="{{ a.alice.password }}"
             registrar="{{ c.domain }}"
-            realm="{{ c.domain }}"
+            realm="{{ a.alice.domain }}"
             expected_cause_code="200"
-            srtp="{{ a.90002.srtp }}"
+            srtp="{{ a.alice.srtp }}"
         />
-        <action type="register" label="Register {{ a.92002.username }}"
-            transport="{{ a.92002.transport }}"
-            account="{{ a.92002.username }}"
-            username="{{ a.92002.label }}"
-            auth_username="{{ a.92002.username }}"
-            password="{{ a.92002.password }}"
+
+        <action type="register" label="Register {{ a.chuck.label }}"
+            transport="{{ a.chuck.transport }}"
+            account="{{ a.chuck.username }}"
+            username="{{ a.chuck.username }}"
+            auth_username="{{ a.chuck.auth_username }}"
+            password="{{ a.chuck.password }}"
             registrar="{{ c.domain }}"
-            realm="{{ c.domain }}"
+            realm="{{ a.chuck.domain }}"
             expected_cause_code="200"
-            srtp="{{ a.92002.srtp }}"
+            srtp="{{ a.chuck.srtp }}"
         />
+
         <action type="wait" complete="true" ms="2000"/>
-        <action type="call" label="Call from 90001 to 92002->90002"
-            transport="{{ a.90001.transport }}"
+
+        <action type="call" label="Call from {{ a.bob.label }} to {{ a.chuck.label }}->{{ a.alice.label }}"
+            transport="{{ a.bob.transport }}"
             expected_cause_code="200"
-            caller="{{ a.90001.label }}@{{ c.domain }}"
-            callee="92002@{{ c.domain }}"
-            from="sip:{{ a.90001.label }}@{{ c.domain }}"
-            to_uri="92002@{{ c.domain }}"
+            caller="{{ a.bob.username }}@{{ a.bob.domain }}"
+            callee="{{ a.chuck.get('extension', a.chuck.username) }}@{{ a.chuck.domain }}"
+            from="sip:{{ a.bob.username }}@{{ a.bob.domain }}"
+            to_uri="{{ a.chuck.get('extension', a.chuck.username) }}@{{ a.chuck.domain }}"
             max_duration="20" hangup="10"
-            auth_username="{{ a.90001.username }}"
-            password="{{ a.90001.password }}"
-            realm="{{ c.domain }}"
+            auth_username="{{ a.bob.username }}"
+            password="{{ a.bob.password }}"
+            realm="{{ a.bob.domain }}"
             rtp_stats="true"
             max_ring_duration="60"
-            srtp="{{ a.90001.srtp }}"
+            srtp="{{ a.bob.srtp }}"
             play="{{ c.play_file }}"
+            rtp_port_min="5000"
+            rtp_port_max="6000"
         />
-        <action type="accept" label="Receive call on {{ a.92002.username }}"
-            match_account="{{ a.92002.username }}"
+
+        <action type="accept" label="Receive, and don't answer, call on {{ a.chuck.label }}"
+            match_account="{{ a.chuck.username }}"
             call_count="1"
             hangup="10"
             ring_duration="30"
             cancel="force"
-            transport="{{ a.92002.transport }}"
-            srtp="{{ a.92002.srtp }}"
+            transport="{{ a.chuck.transport }}"
+            srtp="{{ a.chuck.srtp }}"
         />
-        <action type="accept" label="Receive call on {{ a.90002.username }}"
-            match_account="{{ a.90002.username }}"
+        <action type="accept" label="Receive, and answer, call on {{ a.alice.label }}"
+            match_account="{{ a.alice.username }}"
             call_count="1"
             hangup="10"
             code="200" reason="OK"
-            transport="{{ a.90002.transport }}"
-            srtp="{{ a.90002.srtp }}"
+            transport="{{ a.alice.transport }}"
+            srtp="{{ a.alice.srtp }}"
             play="{{ c.play_file }}"
         />
         <action type="wait" complete="true" ms="20000"/>

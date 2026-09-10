@@ -1,5 +1,6 @@
 global:
-  domain:           'sip.target.system'
+  domain:           'asterisk.service.consul'
+  #domain:           'sip.target.system'
   domain_wss:       'sip.target.system:8089'
 
   pcmu_priority: 249
@@ -80,35 +81,10 @@ accounts:
   'carlos':
     username: '104'
 
-  '88883':
-    username: '88883'
+  'chuck':
+    username: '105'
     password: 'SuperSecretPass'
-  '90001':
-    username: '90001'
-    password: 'SuperSecretPass'
-  '90002':
-    username: '90002'
-    password: 'SuperSecretPass'
-  '90002-456a7f':
-    id:       '90002'
-    username: '90002-456a7f'
-    password: 'SuperSecretPass'
-  '90003':
-    username: '90003'
-    password: 'SuperSecretPass'
-  '90510':
-    username: '90510'
-    password: 'SuperSecretPass'
-  '90502':
-    username: '90502'
-    password: 'SuperSecretPass'
-  '92002':
-    username: '92002'
-    password: 'SuperSecretPass'
-  '90011':
-    username: '90011'
-    password: 'SuperSecretPass'
-    ha1:      'SuperSecretHA1'
+
   '90012':
     username: '90012'
     password: 'SuperSecretPass'
