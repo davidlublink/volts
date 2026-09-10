@@ -76,8 +76,9 @@ accounts:
   # Has server side call forwarding to user alice
   'carol':
     username: '103'
+    password: 'SuperSecretPass'
 
-  # Has server side call forwarding to user carol who forwards to carlos
+  # Has server side call forwarding to user carol who forwards to alice
   'carlos':
     username: '104'
 
@@ -87,7 +88,11 @@ accounts:
 
   # Queue used in test 8, should dial queue with only Alice in it
   'queue08':
-    username: '106'
+    username: '108'
+
+  # Queue used in test 9, should dial queue with only Carol and ignore her call forwarding
+  'queue09':
+    username: '109'
 
   '90013':
     username: '90013'
