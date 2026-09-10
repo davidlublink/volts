@@ -94,6 +94,15 @@ accounts:
   'queue09':
     username: '109'
 
+  # Queue used in test 10, should have single member with it's the same number
+  'queue10':
+    username: '110'
+
+  # User used in test 10, should be only member of queue10
+  'user10':
+    username: '110'
+    password: 'SuperSecretPass'
+
   '90013':
     username: '90013'
     password: 'SuperSecretPass'
