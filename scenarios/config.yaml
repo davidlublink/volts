@@ -85,10 +85,10 @@ accounts:
     username: '105'
     password: 'SuperSecretPass'
 
-  '90012':
-    username: '90012'
-    password: 'SuperSecretPass'
-    ha1:      'SuperSecretHA1'
+  # Queue used in test 8, should dial queue with only Alice in it
+  'queue08':
+    username: '106'
+
   '90013':
     username: '90013'
     password: 'SuperSecretPass'
