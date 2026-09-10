@@ -86,7 +86,7 @@ accounts:
     username: '105'
     password: 'SuperSecretPass'
 
-  # Queue used in test 8, should dial queue with only Alice in it
+  # Queue used in test 8, 11, should dial queue with only Alice in it
   'queue08':
     username: '108'
 
@@ -103,7 +103,11 @@ accounts:
     username: '110'
     password: 'SuperSecretPass'
 
-  '90013':
-    username: '90013'
-    password: 'SuperSecretPass'
-    ha1:      'SuperSecretHA1'
+  # Queue used in test 11, should have single member, Alice. This queue forwards to a Queue with only Bob as a member
+  'queue11':
+    username: '111'
+
+
+
+
+
