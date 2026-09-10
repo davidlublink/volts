@@ -2,9 +2,9 @@
 <config>
     <actions>
         <action type="codec" disable="all"/>
-        <action type="codec" enable="pcma" priority="250"/>
-        <action type="codec" enable="pcmu" priority="249"/>
-        <action type="codec" enable="opus" priority="248"/>
+        <action type="codec" enable="pcma" priority="{{ c.pcma_priority }}"/>
+        <action type="codec" enable="pcmu" priority="{{ c.pcmu_priority }}"/>
+        <action type="codec" enable="opus" priority="{{ c.opus_priority }}"/>
 
         <action type="register" label="Register {{ a.alice.label }}"
             transport="{{ a.alice.transport }}"

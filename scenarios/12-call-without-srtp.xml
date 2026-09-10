@@ -1,26 +1,40 @@
-<!-- Call without forced SRTP. Should receive 488 -->
+<!-- Call with SRTP disabled in TLS mode. Should receive 488 -->
 <config>
     <actions>
         <action type="codec" disable="all"/>
-        <action type="codec" enable="pcma" priority="250"/>
-        <action type="codec" enable="pcmu" priority="249"/>
-        <action type="codec" enable="opus" priority="248"/>
-        <action type="call" label="Call {{ a.90001.label }} -> 11111"
+        <action type="codec" enable="pcma" priority="{{ c.pcma_priority }}"/>
+        <action type="codec" enable="pcmu" priority="{{ c.pcmu_priority }}"/>
+        <action type="codec" enable="opus" priority="{{ c.opus_priority }}"/>
+        {% if a.alice.transport == 'tls' %}
+        <action type="call" label="Reject call to 11111 for lack of encryption"
             transport="tls"
             expected_cause_code="488"
-            caller="{{ a.90001.label }}@{{ c.domain }}"
-            callee="11111@{{ c.domain }}"
-            from="sip:{{ a.90001.label }}@{{ c.domain }}"
+            caller="{{ a.alice.username }}@{{ c.domain }}"
+            callee="11111@{{ a.alice.domain }}"
+            from="sip:{{ a.alice.username }}@{{ c.domain }}"
             to_uri="11111@{{ c.domain }}"
             max_duration="20" hangup="10"
-            auth_username="{{ a.90001.username }}"
-            password="{{ a.90001.password }}"
-            realm="{{ c.domain }}"
-            rtp_stats="true"
-            max_ring_duration="15"
-            srtp="none"
+            auth_username="{{ a.alice.username }}"
+            password="{{ a.alice.password }}"
+            realm="{{ a.alice.domain }}"
             play="{{ c.play_file }}"
+            rtp_stats="true"
+            srtp="none"
         />
-        <action type="wait" complete="true" ms="30000"/>
+
+        {% else %}
+        <!-- there is no NoOp action, so register to generate output -->
+        <action type="register" label="Ignore incompatible test - Needs TLS"
+            transport="{{ a.alice.transport }}"
+            account="{{ a.alice.username }}"
+            username="{{ a.alice.username }}"
+            auth_username="{{ a.alice.auth_username }}"
+            password="{{ a.alice.password }}"
+            registrar="{{ c.domain }}"
+            realm="{{ a.alice.domain }}"
+            expected_cause_code="200"
+        />
+        {% endif %}
+    <action type="wait" complete="true" ms="{{ c.pause_after_call }}" />
     </actions>
 </config>
