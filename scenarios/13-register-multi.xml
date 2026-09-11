@@ -1,28 +1,34 @@
 <!-- Register 2 accounts on same AOR -->
 <config>
     <actions>
-        <action type="register" label="Register {{ a.90002.username }}"
-            transport="{{ a.90002.transport }}"
-            account="{{ a.90002.username }}"
-            username="{{ a.90002.label }}"
-            auth_username="{{ a.90002.username }}"
-            password="{{ a.90002.password }}"
+
+        <action type="register" label="Register {{ a.alice.label }}-1"
+            transport="{{ a.alice.transport }}"
+            account="{{ a.alice.username }}-1"
+            username="{{ a.alice.username }}"
+            auth_username="{{ a.alice.auth_username }}"
+            password="{{ a.alice.password }}"
             registrar="{{ c.domain }}"
-            realm="{{ c.domain }}"
+            realm="{{ a.alice.domain }}"
             expected_cause_code="200"
-            srtp="{{ a.90002.srtp }}"
         />
-        <action type="register" label="Register {{ a['90002-456a7f'].username }}"
-            transport="{{ a['90002-456a7f'].transport }}"
-            account="{{ a['90002-456a7f'].username }}"
-            username="{{ a['90002-456a7f'].id }}"
-            auth_username="{{ a['90002-456a7f'].username }}"
-            password="{{ a['90002-456a7f'].password }}"
+
+        <action type="register" label="Register a second time {{ a.alice.label }}-2, see two contacts "
+            transport="{{ a.alice.transport }}"
+            account="{{ a.alice.username }}-2"
+            username="{{ a.alice.username }}"
+            auth_username="{{ a.alice.auth_username }}"
+            password="{{ a.alice.password }}"
             registrar="{{ c.domain }}"
-            realm="{{ c.domain }}"
+            realm="{{ a.alice.domain }}"
             expected_cause_code="200"
-            srtp="{{ a['90002-456a7f'].srtp }}"
-        />
+        >
+            <check-header name="Contact" method="OK" regex=".*[:=]{{ a.alice.username }}-1.*" count="1" />
+            <check-header name="Contact" method="OK" regex=".*[:=]{{ a.alice.username }}-2.*" count="1" />
+            <check-header name="Contact" method="OK" regex="\&lt;sip:.*" count="2" />
+        </action>
+
+        
         <action type="wait" complete="true" ms="2000"/>
     </actions>
 </config>
