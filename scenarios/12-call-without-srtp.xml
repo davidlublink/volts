@@ -5,7 +5,7 @@
         <action type="codec" enable="pcma" priority="{{ c.pcma_priority }}"/>
         <action type="codec" enable="pcmu" priority="{{ c.pcmu_priority }}"/>
         <action type="codec" enable="opus" priority="{{ c.opus_priority }}"/>
-        {% if a.alice.transport == 'tls' %}
+
         <action type="call" label="Reject call to 11111 for lack of encryption"
             transport="tls"
             expected_cause_code="488"
@@ -22,19 +22,6 @@
             srtp="none"
         />
 
-        {% else %}
-        <!-- there is no NoOp action, so register to generate output -->
-        <action type="register" label="Ignore incompatible test - Needs TLS"
-            transport="{{ a.alice.transport }}"
-            account="{{ a.alice.username }}"
-            username="{{ a.alice.username }}"
-            auth_username="{{ a.alice.auth_username }}"
-            password="{{ a.alice.password }}"
-            registrar="{{ c.domain }}"
-            realm="{{ a.alice.domain }}"
-            expected_cause_code="200"
-        />
-        {% endif %}
     <action type="wait" complete="true" ms="{{ c.pause_after_call }}" />
     </actions>
 </config>
