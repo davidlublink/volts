@@ -1,4 +1,4 @@
-<!-- Register with Alice and Chuck. Bob makes a call to Chuck, Chuck's device rings 30 seconds, no answer and the call is forwarded to Alice who answers -->
+<!-- Register with Alice and charlie. Bob makes a call to charlie, charlie's device rings 30 seconds, no answer and the call is forwarded to Alice who answers -->
 <config>
     <actions>
         <action type="codec" disable="all"/>
@@ -17,27 +17,27 @@
             srtp="{{ a.alice.srtp }}"
         />
 
-        <action type="register" label="Register {{ a.chuck.label }}"
-            transport="{{ a.chuck.transport }}"
-            account="{{ a.chuck.username }}"
-            username="{{ a.chuck.username }}"
-            auth_username="{{ a.chuck.auth_username }}"
-            password="{{ a.chuck.password }}"
+        <action type="register" label="Register {{ a.charlie.label }}"
+            transport="{{ a.charlie.transport }}"
+            account="{{ a.charlie.username }}"
+            username="{{ a.charlie.username }}"
+            auth_username="{{ a.charlie.auth_username }}"
+            password="{{ a.charlie.password }}"
             registrar="{{ c.domain }}"
-            realm="{{ a.chuck.domain }}"
+            realm="{{ a.charlie.domain }}"
             expected_cause_code="200"
-            srtp="{{ a.chuck.srtp }}"
+            srtp="{{ a.charlie.srtp }}"
         />
 
         <action type="wait" complete="true" ms="2000"/>
 
-        <action type="call" label="Call from {{ a.bob.label }} to {{ a.chuck.label }}->{{ a.alice.label }}"
+        <action type="call" label="Call from {{ a.bob.label }} to {{ a.charlie.label }}->{{ a.alice.label }}"
             transport="{{ a.bob.transport }}"
             expected_cause_code="200"
             caller="{{ a.bob.username }}@{{ a.bob.domain }}"
-            callee="{{ a.chuck.get('extension', a.chuck.username) }}@{{ a.chuck.domain }}"
+            callee="{{ a.charlie.get('extension', a.charlie.username) }}@{{ a.charlie.domain }}"
             from="sip:{{ a.bob.username }}@{{ a.bob.domain }}"
-            to_uri="{{ a.chuck.get('extension', a.chuck.username) }}@{{ a.chuck.domain }}"
+            to_uri="{{ a.charlie.get('extension', a.charlie.username) }}@{{ a.charlie.domain }}"
             max_duration="20" hangup="10"
             auth_username="{{ a.bob.username }}"
             password="{{ a.bob.password }}"
@@ -50,14 +50,14 @@
             rtp_port_max="6000"
         />
 
-        <action type="accept" label="Receive, and don't answer, call on {{ a.chuck.label }}"
-            match_account="{{ a.chuck.username }}"
+        <action type="accept" label="Receive, and don't answer, call on {{ a.charlie.label }}"
+            match_account="{{ a.charlie.username }}"
             call_count="1"
             hangup="10"
             ring_duration="30"
             cancel="force"
-            transport="{{ a.chuck.transport }}"
-            srtp="{{ a.chuck.srtp }}"
+            transport="{{ a.charlie.transport }}"
+            srtp="{{ a.charlie.srtp }}"
         />
         <action type="accept" label="Receive, and answer, call on {{ a.alice.label }}"
             match_account="{{ a.alice.username }}"

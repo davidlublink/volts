@@ -86,7 +86,7 @@ accounts:
   'carlos':
     username: '104'
 
-  'chuck':
+  'charlie':
     username: '105'
     password: 'SuperSecretPass'
 
