@@ -1,4 +1,5 @@
-<!-- Register with bob and receive a call from chuck. Call should not happen as it's blacklisted with Voicemail policy -->
+<!-- Register with bob and receive call on it from alice -->
+<!-- This is sanity to ensure bob receives calls since later tests assume he does -->
 <config>
     <actions>
         <action type="codec" disable="all"/>
@@ -17,10 +18,9 @@
             srtp="{{ a.bob.srtp }}"
         />
         <action type="wait" complete="true" ms="2000" label="Wait for registration to propagate"/>
-        <action type="accept" label="Receive NO call from {{ a.bob.label }}"
+        <action type="accept" label="Receive call from {{ a.bob.label }}"
             call_count="1"
             match_account="{{ a.bob.username }}"
-            fail_on_accept="true"
             hangup="10"
             code="200" reason="OK"
             transport="{{ a.bob.transport }}"
@@ -29,20 +29,20 @@
             rtp_stats="true"
          />
 
-        <action type="call" label="Call from {{ a.chuck.label }} to {{ a.bob.label }} (Busy)"
-            transport="{{ a.chuck.transport }}"
+        <action type="call" label="Call from {{ a.alice.label }} to {{ a.bob.label }}"
+            transport="{{ a.alice.transport }}"
             expected_cause_code="200"
-            caller="{{ a.chuck.username }}@{{ a.chuck.domain }}"
+            caller="{{ a.alice.username }}@{{ a.alice.domain }}"
             callee="{{ a.bob.get('extension', a.bob.username) }}@{{ a.bob.domain }}"
-            from="sip:{{ a.chuck.username }}@{{ a.chuck.domain }}"
+            from="sip:{{ a.alice.username }}@{{ a.alice.domain }}"
             to_uri="{{ a.bob.get('extension', a.bob.username) }}@{{ a.bob.domain }}"
             max_duration="20" hangup="10"
-            auth_username="{{ a.chuck.username }}"
-            password="{{ a.chuck.password }}"
-            realm="{{ a.chuck.domain }}"
+            auth_username="{{ a.alice.username }}"
+            password="{{ a.alice.password }}"
+            realm="{{ a.alice.domain }}"
             rtp_stats="true"
             max_ring_duration="15"
-            srtp="{{ a.chuck.srtp }}"
+            srtp="{{ a.alice.srtp }}"
             play="{{ c.play_file }}"
             rtp_port_min="5000"
             rtp_port_max="6000"

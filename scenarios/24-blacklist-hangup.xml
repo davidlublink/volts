@@ -1,4 +1,4 @@
-<!-- Register with alice and receive call on it from Chuck -->
+<!-- Register with alice and don't receive a call from chuck, he was blocked at the server -->
 <config>
     <actions>
         <action type="codec" disable="all"/>
