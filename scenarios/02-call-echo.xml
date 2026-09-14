@@ -4,13 +4,13 @@
         <action type="codec" disable="all"/>
         <action type="codec" enable="pcma" priority="{{ c.pcma_priority }}"/>
         <action type="codec" enable="pcmu" priority="{{ c.pcmu_priority }}"/>
-        <action type="call" label="Call to 11111 (echo)"
+        <action type="call" label="Call to {{ c.echo_service }} (echo)"
             transport="{{ a.alice.transport }}"
             expected_cause_code="200"
             caller="{{ a.alice.username }}@{{ c.domain }}"
-            callee="11111@{{ a.alice.domain }}"
+            callee="{{ c.echo_service }}@{{ a.alice.domain }}"
             from="sip:{{ a.alice.username }}@{{ c.domain }}"
-            to_uri="11111@{{ c.domain }}"
+            to_uri="{{ c.echo_service }}@{{ c.domain }}"
             max_duration="20" hangup="10"
             auth_username="{{ a.alice.username }}"
             password="{{ a.alice.password }}"
