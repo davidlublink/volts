@@ -1,46 +1,52 @@
-<!-- Register with 90003 and receive a call from 88882. Call should not happen as it's blacklisted with Hangup policy -->
+<!-- Register with alice and receive call on it from Chuck -->
 <config>
     <actions>
         <action type="codec" disable="all"/>
-        <action type="codec" enable="pcma" priority="250"/>
-        <action type="codec" enable="pcmu" priority="249"/>
-        <action type="codec" enable="opus" priority="248"/>
-        <action type="register" label="Register {{ a.90003.username }}"
-            transport="{{ a.90003.transport }}"
-            account="{{ a.90003.username }}"
-            username="{{ a.90003.label }}"
-            auth_username="{{ a.90003.username }}"
-            password="{{ a.90003.password }}"
+        <action type="codec" enable="pcma" priority="{{ c.pcma_priority }}"/>
+        <action type="codec" enable="pcmu" priority="{{ c.pcmu_priority }}"/>
+        <action type="codec" enable="opus" priority="{{ c.opus_priority }}"/>
+        <action type="register" label="Register {{ a.alice.label }}"
+            transport="{{ a.alice.transport }}"
+            account="{{ a.alice.username }}"
+            username="{{ a.alice.username }}"
+            auth_username="{{ a.alice.auth_username }}"
+            password="{{ a.alice.password }}"
             registrar="{{ c.domain }}"
-            realm="{{ c.domain }}"
+            realm="{{ a.alice.domain }}"
             expected_cause_code="200"
-            srtp="{{ a.90003.srtp }}"
+            srtp="{{ a.alice.srtp }}"
         />
-        <action type="wait" complete="true" ms="2000"/>
-        <action type="accept" label="Receive NO call on {{ a.90003.username }}"
+        <action type="wait" complete="true" ms="2000" label="Wait for registration to propagate"/>
+        <action type="accept" label="Receive NO call from {{ a.alice.label }}"
             call_count="1"
-            match_account="{{ a.90003.username }}"
+            match_account="{{ a.alice.username }}"
+            fail_on_accept="true"
             hangup="10"
             code="200" reason="OK"
-            fail_on_accept="true"
-            transport="{{ a.90003.transport }}"
-            srtp="{{ a.90003.srtp }}"
+            transport="{{ a.alice.transport }}"
+            srtp="{{ a.alice.srtp }}"
             play="{{ c.play_file }}"
-        />
-        <action type="call" label="Call {{ a.88882.label }} -> {{ a.90003.label }} (Busy)"
-            transport="tls"
+            rtp_stats="true"
+         />
+
+        <action type="call" label="Call from {{ a.chuck.label }} to {{ a.alice.label }} (Busy)"
+            transport="{{ a.chuck.transport }}"
             expected_cause_code="486"
-            caller="{{ a.88882.label }}@{{ c.domain }}"
-            callee="{{ a.90003.label }}@{{ c.domain }}"
-            from="sip:{{ a.88882.label }}@{{ c.domain }}"
-            to_uri="{{ a.90003.label }}@{{ c.domain }}"
+            caller="{{ a.chuck.username }}@{{ a.chuck.domain }}"
+            callee="{{ a.alice.get('extension', a.alice.username) }}@{{ a.alice.domain }}"
+            from="sip:{{ a.chuck.username }}@{{ a.chuck.domain }}"
+            to_uri="{{ a.alice.get('extension', a.alice.username) }}@{{ a.alice.domain }}"
             max_duration="20" hangup="10"
-            auth_username="{{ a.88882.username }}"
-            password="{{ a.88882.password }}"
-            realm="{{ c.domain }}"
+            auth_username="{{ a.chuck.username }}"
+            password="{{ a.chuck.password }}"
+            realm="{{ a.chuck.domain }}"
+            rtp_stats="true"
             max_ring_duration="15"
-            srtp="{{ a.88882.srtp }}"
+            srtp="{{ a.chuck.srtp }}"
+            play="{{ c.play_file }}"
+            rtp_port_min="5000"
+            rtp_port_max="6000"
         />
-        <action type="wait" complete="true" ms="30000"/>
+        <action type="wait" complete="true" ms="30000" label="Wait for call completion"/>
     </actions>
 </config>

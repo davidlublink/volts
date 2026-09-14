@@ -90,6 +90,11 @@ accounts:
     username: '105'
     password: 'SuperSecretPass'
 
+  # Bad actor who is blocked by Alice
+  'chuck':
+    username: '106'
+    password: 'SuperSecretPass'
+
   # Queue used in test 8, 11, should dial queue with only Alice in it
   'queue08':
     username: '108'
