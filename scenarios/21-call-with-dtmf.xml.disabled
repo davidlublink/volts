@@ -1,4 +1,5 @@
 <!-- Register with 90002 and receive a call from 90001 -->
+<!-- this test does *NOT* test any DTMF despite the test name -->
 <config>
     <actions>
         <action type="codec" disable="all"/>
