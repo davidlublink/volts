@@ -3,6 +3,8 @@ global:
   #domain:           'sip.target.system'
   domain_wss:       'sip.target.system:8089'
 
+  main_number: '15555550000'
+
   pcmu_priority: 249
   pcma_priority: 250
   opus_priority: 248
