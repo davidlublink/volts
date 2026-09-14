@@ -1,14 +1,14 @@
-<!-- Test simple register -->
+<!-- Test label as username causes test to fail -->
 <config>
     <actions>
-        <action type="register" label="Register {{ a.88881.username }}"
-            transport="{{ a.88881.transport }}"
-            account="{{ a.88881.username }}"
-            username="{{ a.88881.label }}"
-            auth_username="{{ a.88881.label }}"
-            password="{{ a.88881.password }}"
+        <action type="register" label="Register {{ a.alice.label }} with bad auth name"
+            transport="{{ a.alice.transport }}"
+            account="{{ a.alice.username }}"
+            username="{{ a.alice.username }}"
+            auth_username="{{ a.alice.label }}"
+            password="{{ a.alice.password }}"
             registrar="{{ c.domain }}"
-            realm="{{ a.88881.domain }}"
+            realm="{{ a.alice.domain }}"
             expected_cause_code="401"
         />
         <action type="wait" complete="true" ms="2000"/>
