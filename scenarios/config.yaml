@@ -70,6 +70,8 @@ accounts:
     # auth_username: '101'
 
   'bob':
+    # This value has to be regex friendly, so escaping + and others is important
+    callerid: '[+]123456102'
     username: '102'
     password: 'SuperSecretPass'
 
